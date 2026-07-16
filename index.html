@@ -221,6 +221,7 @@
         .nav-btn.swiper-button-disabled {
             opacity: 0.3;
             cursor: not-allowed;
+            pointer-events: none;
         }
 
         .close-btn {
@@ -382,6 +383,7 @@
             const nextBtn = document.getElementById('nextBtn');
             const counter = document.getElementById('counter');
             const swiperWrapper = document.getElementById('swiperWrapper');
+            const swiperContainer = document.getElementById('swiperContainer');
 
             let swiperInstance = null;
             let currentIndex = 0;
@@ -493,7 +495,7 @@
             }
 
             // ============================================================
-            // 4. 灯箱 (Swiper) – 支持视频，禁用 loop 修复初始显示错误
+            // 4. 灯箱 (Swiper) – 彻底修复初始显示和导航问题
             // ============================================================
             function openLightbox(index) {
                 if (!IMAGES.length) return;
@@ -516,18 +518,18 @@
             }
 
             function buildSwiper(initialSlide) {
+                // 清空并重建 slides
                 swiperWrapper.innerHTML = '';
-                console.log('🔨 构建 Swiper，初始索引:', initialSlide);
+                console.log('🔨 构建 Swiper，目标索引:', initialSlide);
                 IMAGES.forEach((item, idx) => {
                     console.log(`  Slide ${idx}: src=${item.src}, video=${item.video || '无'}`);
                     const slide = document.createElement('div');
                     slide.className = 'swiper-slide';
 
                     if (item.video) {
-                        // 视频 slide
                         const video = document.createElement('video');
                         video.src = item.video;
-                        video.poster = item.src;   // 关键：使用静态图片作为海报
+                        video.poster = item.src;
                         video.controls = true;
                         video.muted = true;
                         video.playsInline = true;
@@ -536,31 +538,49 @@
                         video.addEventListener('click', (e) => e.stopPropagation());
                         slide.appendChild(video);
                     } else {
-                        // 图片 slide
                         const img = document.createElement('img');
                         img.src = item.src;
                         img.alt = item.alt;
                         slide.appendChild(img);
                     }
-
                     swiperWrapper.appendChild(slide);
                 });
 
-                if (swiperInstance) swiperInstance.destroy(true, true);
+                // 销毁旧实例
+                if (swiperInstance) {
+                    swiperInstance.destroy(true, true);
+                    swiperInstance = null;
+                }
 
-                // 禁用 loop 模式，避免初始显示错位和警告
-                swiperInstance = new Swiper('.swiper-container', {
-                    initialSlide: initialSlide,
+                // 重新初始化
+                swiperInstance = new Swiper(swiperContainer, {
+                    initialSlide: 0,          // 先设为0，稍后强制跳转
                     effect: 'fade',
                     fadeEffect: { crossFade: true },
                     speed: 400,
-                    loop: false,                // 禁用循环
-                    watchOverflow: true,        // 幻灯片不足时禁用导航
+                    loop: false,
                     navigation: {
                         prevEl: prevBtn,
                         nextEl: nextBtn,
                     },
+                    // 在初始化完成后立即跳转
                     on: {
+                        init: function() {
+                            // 立即跳转到目标索引
+                            this.slideTo(initialSlide, 0);
+                            // 更新计数
+                            updateCounter(initialSlide);
+                            // 如果当前 slide 有视频，尝试播放
+                            const currentSlide = this.slides[this.activeIndex];
+                            if (currentSlide) {
+                                const video = currentSlide.querySelector('video');
+                                if (video) {
+                                    video.play().catch(() => {});
+                                }
+                            }
+                            // 启用/禁用导航按钮
+                            this.navigation.update();
+                        },
                         slideChangeTransitionEnd: function() {
                             const slides = document.querySelectorAll('.swiper-slide');
                             slides.forEach((slide, idx) => {
@@ -573,27 +593,14 @@
                                     }
                                 }
                             });
-                            // 使用 activeIndex（非 loop 下等同于真实索引）
                             updateCounter(this.activeIndex);
-                        },
-                        init: function() {
-                            // 初始化时播放当前视频
-                            setTimeout(() => {
-                                const slides = document.querySelectorAll('.swiper-slide');
-                                slides.forEach((slide, idx) => {
-                                    const video = slide.querySelector('video');
-                                    if (video && idx === this.activeIndex) {
-                                        video.play().catch(() => {});
-                                    }
-                                });
-                            }, 200);
                         }
-                    },
+                    }
                 });
 
-                // 额外保险：初始化后强制再定位一次
+                // 额外保险：如果初始化后还没跳转，再强制一次
                 setTimeout(() => {
-                    if (swiperInstance) {
+                    if (swiperInstance && swiperInstance.activeIndex !== initialSlide) {
                         swiperInstance.slideTo(initialSlide, 0);
                         updateCounter(initialSlide);
                     }

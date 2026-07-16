@@ -1,7 +1,11 @@
 {
   "name": "daisy-photo-wall",
   "version": "1.0.0",
+  "description": "Daisy's photo gallery with R2 storage and auto-generated manifest",
   "scripts": {
     "build": "node build.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0"
   }
 }

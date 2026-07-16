@@ -218,6 +218,11 @@
             right: 1.5rem;
         }
 
+        .nav-btn.swiper-button-disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
         .close-btn {
             position: fixed;
             top: 1.8rem;
@@ -488,7 +493,7 @@
             }
 
             // ============================================================
-            // 4. 灯箱 (Swiper) – 支持视频
+            // 4. 灯箱 (Swiper) – 支持视频，禁用 loop 修复初始显示错误
             // ============================================================
             function openLightbox(index) {
                 if (!IMAGES.length) return;
@@ -543,12 +548,14 @@
 
                 if (swiperInstance) swiperInstance.destroy(true, true);
 
+                // 禁用 loop 模式，避免初始显示错位和警告
                 swiperInstance = new Swiper('.swiper-container', {
                     initialSlide: initialSlide,
                     effect: 'fade',
                     fadeEffect: { crossFade: true },
                     speed: 400,
-                    loop: true,
+                    loop: false,                // 禁用循环
+                    watchOverflow: true,        // 幻灯片不足时禁用导航
                     navigation: {
                         prevEl: prevBtn,
                         nextEl: nextBtn,
@@ -566,10 +573,11 @@
                                     }
                                 }
                             });
-                            const realIdx = this.realIndex;
-                            updateCounter(realIdx);
+                            // 使用 activeIndex（非 loop 下等同于真实索引）
+                            updateCounter(this.activeIndex);
                         },
                         init: function() {
+                            // 初始化时播放当前视频
                             setTimeout(() => {
                                 const slides = document.querySelectorAll('.swiper-slide');
                                 slides.forEach((slide, idx) => {
@@ -583,17 +591,13 @@
                     },
                 });
 
+                // 额外保险：初始化后强制再定位一次
                 setTimeout(() => {
                     if (swiperInstance) {
-                        const activeSlide = swiperInstance.slides[swiperInstance.activeIndex];
-                        if (activeSlide) {
-                            const video = activeSlide.querySelector('video');
-                            if (video) {
-                                video.play().catch(() => {});
-                            }
-                        }
+                        swiperInstance.slideTo(initialSlide, 0);
+                        updateCounter(initialSlide);
                     }
-                }, 300);
+                }, 100);
             }
 
             function updateCounter(index) {

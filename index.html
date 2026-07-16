@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,10 +11,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet" />
 
+    <!-- ===== Swiper CSS ===== -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+
     <style>
-        /* ============================================================
-                   1. 全局重置 & 基础
-                   ============================================================ */
+        /* ===== 全局重置 ===== */
         * {
             margin: 0;
             padding: 0;
@@ -21,7 +23,7 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', -apple-system, sans-serif;
             background: #fcf8f6;
             min-height: 100vh;
             padding: 2rem 1.5rem 3rem;
@@ -30,14 +32,12 @@
             align-items: center;
         }
 
-        /* ============================================================
-                   2. 容器 & 标题（更新）
-                   ============================================================ */
         .gallery-wrapper {
             max-width: 1200px;
             width: 100%;
         }
 
+        /* ===== 标题 ===== */
         .gallery-header {
             text-align: center;
             margin-bottom: 2.8rem;
@@ -45,19 +45,14 @@
 
         .gallery-header h1 {
             font-size: 2.6rem;
-            font-weight: 500;
-            letter-spacing: 0.02em;
-            color: #3d2c2a;
-            font-family: 'Inter', serif;
             font-weight: 400;
+            color: #3d2c2a;
         }
 
         .gallery-header .subtitle {
             font-size: 1.1rem;
             color: #8a7773;
             margin-top: 0.3rem;
-            letter-spacing: 0.5px;
-            font-weight: 400;
         }
 
         .gallery-header .subtitle .heart {
@@ -67,10 +62,12 @@
         }
 
         @keyframes pulse {
+
             0%,
             100% {
                 transform: scale(1);
             }
+
             50% {
                 transform: scale(1.15);
             }
@@ -80,13 +77,9 @@
             margin-top: 0.8rem;
             font-size: 0.9rem;
             color: #b5a39e;
-            letter-spacing: 0.3px;
-            font-weight: 400;
         }
 
-        /* ============================================================
-                   3. 图片网格
-                   ============================================================ */
+        /* ===== 网格 ===== */
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -98,36 +91,47 @@
             position: relative;
             border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04), 0 2px 6px rgba(0, 0, 0, 0.02);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
             background: #fff;
-            transition: transform 0.25s ease, box-shadow 0.3s ease;
             cursor: pointer;
             aspect-ratio: 4 / 5;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            transition: transform 0.25s, box-shadow 0.3s;
         }
 
         .grid-item:hover {
             transform: translateY(-6px);
-            box-shadow: 0 18px 36px rgba(0, 0, 0, 0.08), 0 6px 12px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 18px 36px rgba(0, 0, 0, 0.08);
         }
 
-        .grid-item img {
+        /* 图片与视频层叠 */
+        .grid-item .media-wrapper {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .grid-item .media-wrapper img,
+        .grid-item .media-wrapper video {
             width: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
-            transition: transform 0.4s ease;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
-        .grid-item:hover img {
-            transform: scale(1.02);
+        .grid-item .media-wrapper video {
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
         }
 
-        /* ============================================================
-                   4. Lightbox 遮罩层
-                   ============================================================ */
+        .grid-item .media-wrapper video.active {
+            opacity: 1;
+        }
+
+        /* ===== 灯箱 (Swiper) ===== */
         .lightbox {
             position: fixed;
             top: 0;
@@ -136,14 +140,12 @@
             height: 100%;
             background: rgba(30, 22, 20, 0.85);
             backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             z-index: 9999;
             display: none;
             align-items: center;
             justify-content: center;
-            flex-direction: column;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.3s;
             padding: 1.5rem;
         }
 
@@ -152,38 +154,44 @@
             opacity: 1;
         }
 
-        .lightbox-image-wrap {
-            position: relative;
+        .swiper-container {
+            width: 100%;
             max-width: 90vw;
             max-height: 80vh;
+            height: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            background: #1a1a1a;
+        }
+
+        .swiper-slide {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 100%;
-            height: 100%;
+            background: #1a1a1a;
         }
 
-        .lightbox-image-wrap img {
-            max-width: 100%;
-            max-height: 100%;
-            width: auto;
-            height: auto;
+        .swiper-slide img,
+        .swiper-slide video {
+            width: 100%;
+            height: 100%;
             object-fit: contain;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-            background: #fcf8f6;
-            transition: transform 0.2s ease;
             user-select: none;
             -webkit-user-drag: none;
         }
 
+        .swiper-slide video {
+            background: #000;
+        }
+
+        /* 自定义导航 */
         .nav-btn {
             position: fixed;
             top: 50%;
             transform: translateY(-50%);
             background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 60px;
             width: 56px;
@@ -194,20 +202,18 @@
             font-size: 2rem;
             color: #fff;
             cursor: pointer;
-            transition: background 0.25s ease, transform 0.2s ease;
             z-index: 10001;
-            user-select: none;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            transition: background 0.25s;
         }
 
         .nav-btn:hover {
             background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-50%) scale(1.05);
         }
 
         .nav-btn.prev {
             left: 1.5rem;
         }
+
         .nav-btn.next {
             right: 1.5rem;
         }
@@ -219,26 +225,18 @@
             z-index: 10002;
             background: rgba(0, 0, 0, 0.35);
             backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
             border: none;
             border-radius: 60px;
             width: 50px;
             height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             font-size: 1.8rem;
             color: #fff;
             cursor: pointer;
-            transition: background 0.25s ease, transform 0.2s ease;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-            font-weight: 300;
-            line-height: 1;
+            transition: background 0.25s;
         }
 
         .close-btn:hover {
             background: rgba(0, 0, 0, 0.55);
-            transform: scale(1.06);
         }
 
         .counter {
@@ -247,21 +245,16 @@
             left: 50%;
             transform: translateX(-50%);
             color: rgba(255, 255, 255, 0.7);
-            font-size: 0.95rem;
-            letter-spacing: 0.5px;
             background: rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
             padding: 0.4rem 1.2rem;
             border-radius: 40px;
             border: 1px solid rgba(255, 255, 255, 0.08);
             z-index: 10001;
-            font-weight: 400;
+            font-size: 0.95rem;
         }
 
-        /* ============================================================
-                   5. 返回按钮（风格统一）
-                   ============================================================ */
+        /* ===== 返回按钮 ===== */
         .back-home {
             margin-top: 3rem;
             display: inline-flex;
@@ -274,23 +267,16 @@
             font-size: 1rem;
             font-weight: 500;
             text-decoration: none;
-            transition: background 0.25s ease, transform 0.2s ease;
+            transition: background 0.25s, transform 0.2s;
             box-shadow: 0 4px 12px rgba(242, 205, 196, 0.3);
-            border: none;
-            cursor: pointer;
-            font-family: inherit;
-            letter-spacing: 0.3px;
         }
 
         .back-home:hover {
             background: #e8bcb2;
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(242, 205, 196, 0.4);
         }
 
-        /* ============================================================
-                   6. 响应式
-                   ============================================================ */
+        /* ===== 响应式 ===== */
         @media (max-width: 640px) {
             body {
                 padding: 1.2rem 0.8rem 2rem;
@@ -300,22 +286,9 @@
                 font-size: 1.9rem;
             }
 
-            .gallery-header .subtitle {
-                font-size: 0.95rem;
-            }
-
-            .gallery-header .hint {
-                font-size: 0.8rem;
-            }
-
             .grid {
                 grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
                 gap: 0.8rem;
-            }
-
-            .grid-item {
-                border-radius: 14px;
-                aspect-ratio: 4 / 5;
             }
 
             .nav-btn {
@@ -327,6 +300,7 @@
             .nav-btn.prev {
                 left: 0.6rem;
             }
+
             .nav-btn.next {
                 right: 0.6rem;
             }
@@ -344,11 +318,6 @@
                 font-size: 0.8rem;
                 padding: 0.3rem 1rem;
             }
-
-            .back-home {
-                padding: 0.6rem 1.5rem;
-                font-size: 0.9rem;
-            }
         }
 
         @media (max-width: 400px) {
@@ -357,37 +326,20 @@
                 gap: 0.6rem;
             }
         }
-
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            border: 0;
-        }
     </style>
 </head>
 
 <body>
 
     <div class="gallery-wrapper">
-
-        <!-- ===== 标题区（已更新） ===== -->
         <header class="gallery-header">
             <h1>Daisy’s Photo Gallery</h1>
             <p class="subtitle">黛溪的海报墙 <span class="heart">❤️</span></p>
             <p class="hint">点击任意照片放大 · 左右滑动浏览</p>
         </header>
 
-        <!-- ===== 图片网格 ===== -->
-        <div class="grid" id="photoGrid">
-            <!-- 由 JavaScript 动态生成 -->
-        </div>
+        <div class="grid" id="photoGrid"></div>
 
-        <!-- ===== 返回按钮 ===== -->
         <div style="display: flex; justify-content: center; width: 100%;">
             <a href="https://zdx-role-test.ycxazzo.top" target="_blank" class="back-home">
                 ← 回到人格测试
@@ -395,28 +347,29 @@
         </div>
     </div>
 
-    <!-- ============================================================
-    LIGHTBOX
-    ============================================================ -->
-    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="图片放大浏览">
-        <button class="close-btn" id="closeBtn" aria-label="关闭浏览">✕</button>
-        <button class="nav-btn prev" id="prevBtn" aria-label="上一张">‹</button>
-        <button class="nav-btn next" id="nextBtn" aria-label="下一张">›</button>
-        <div class="lightbox-image-wrap" id="lightboxImageWrap">
-            <img id="lightboxImg" src="" alt="放大图片" />
+    <!-- ===== 灯箱 ===== -->
+    <div class="lightbox" id="lightbox">
+        <button class="close-btn" id="closeBtn">✕</button>
+        <button class="nav-btn prev" id="prevBtn">‹</button>
+        <button class="nav-btn next" id="nextBtn">›</button>
+
+        <div class="swiper-container" id="swiperContainer">
+            <div class="swiper-wrapper" id="swiperWrapper"></div>
         </div>
+
         <div class="counter" id="counter">1 / 1</div>
     </div>
 
-    <!-- ============================================================
-    JavaScript
-    ============================================================ -->
+    <!-- ===== 引入 Swiper ===== -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
     <script>
-        (function() {
+        (function () {
             'use strict';
 
             // ============================================================
-            // 1. 图片数据（请替换为实际文件名）
+            // 1. 图片数据（请替换为实际路径）
+            //    若需要 Live Photo，添加 video 字段（视频格式建议 MP4/MOV）
             // ============================================================
             const IMAGES = [
                 { src: 'images/photo-01.jpg', alt: '黛溪 · 光影一' },
@@ -429,6 +382,8 @@
                 { src: 'images/photo-08.jpg', alt: '黛溪 · 光影八' },
                 { src: 'images/photo-09.jpg', alt: '黛溪 · 光影九' },
                 { src: 'images/photo-10.jpg', alt: '黛溪 · 光影十' },
+                { src: 'images/live-01.jpg', video: 'images/live-01.mov', alt: '黛溪 · 动态一' },
+                // 可继续添加其他 Live 照片
             ];
 
             // ============================================================
@@ -436,16 +391,17 @@
             // ============================================================
             const grid = document.getElementById('photoGrid');
             const lightbox = document.getElementById('lightbox');
-            const lightboxImg = document.getElementById('lightboxImg');
             const closeBtn = document.getElementById('closeBtn');
             const prevBtn = document.getElementById('prevBtn');
             const nextBtn = document.getElementById('nextBtn');
             const counter = document.getElementById('counter');
+            const swiperWrapper = document.getElementById('swiperWrapper');
 
+            let swiperInstance = null;
             let currentIndex = 0;
 
             // ============================================================
-            // 3. 渲染网格
+            // 3. 渲染网格（带 Live Photo 效果）
             // ============================================================
             function renderGrid() {
                 grid.innerHTML = '';
@@ -456,19 +412,68 @@
                     div.setAttribute('tabindex', '0');
                     div.setAttribute('aria-label', `查看图片 ${index + 1}: ${item.alt}`);
 
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'media-wrapper';
+
+                    // 图片（始终显示）
                     const img = document.createElement('img');
                     img.src = item.src;
                     img.alt = item.alt;
                     img.loading = 'lazy';
+                    wrapper.appendChild(img);
 
-                    div.appendChild(img);
+                    // 如果有视频，添加 video 并控制悬停/长按播放
+                    if (item.video) {
+                        const video = document.createElement('video');
+                        video.src = item.video;
+                        video.muted = true;
+                        video.playsInline = true;
+                        video.loop = true;
+                        video.preload = 'metadata';
+                        video.setAttribute('aria-hidden', 'true');
+                        wrapper.appendChild(video);
 
-                    div.addEventListener('click', function(e) {
+                        // 桌面：mouseenter 播放，mouseleave 暂停并重置
+                        div.addEventListener('mouseenter', () => {
+                            video.classList.add('active');
+                            video.play().catch(() => { });
+                        });
+                        div.addEventListener('mouseleave', () => {
+                            video.classList.remove('active');
+                            video.pause();
+                            video.currentTime = 0;
+                        });
+
+                        // 移动端：touchstart 长按播放，touchend 暂停
+                        let touchTimer = null;
+                        div.addEventListener('touchstart', (e) => {
+                            touchTimer = setTimeout(() => {
+                                video.classList.add('active');
+                                video.play().catch(() => { });
+                            }, 300);
+                        }, { passive: true });
+                        div.addEventListener('touchend', () => {
+                            clearTimeout(touchTimer);
+                            video.classList.remove('active');
+                            video.pause();
+                            video.currentTime = 0;
+                        }, { passive: true });
+                        div.addEventListener('touchcancel', () => {
+                            clearTimeout(touchTimer);
+                            video.classList.remove('active');
+                            video.pause();
+                            video.currentTime = 0;
+                        }, { passive: true });
+                    }
+
+                    div.appendChild(wrapper);
+
+                    // 点击打开灯箱
+                    div.addEventListener('click', (e) => {
                         e.stopPropagation();
                         openLightbox(index);
                     });
-
-                    div.addEventListener('keydown', function(e) {
+                    div.addEventListener('keydown', (e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
                             openLightbox(index);
@@ -480,47 +485,127 @@
             }
 
             // ============================================================
-            // 4. Lightbox 控制
+            // 4. 灯箱 (Swiper) – 支持视频
             // ============================================================
             function openLightbox(index) {
                 if (!IMAGES.length) return;
-                currentIndex = Math.max(0, Math.min(index, IMAGES.length - 1));
-                updateLightboxImage();
+                currentIndex = Math.min(index, IMAGES.length - 1);
+                buildSwiper(currentIndex);
                 lightbox.classList.add('active');
                 document.body.style.overflow = 'hidden';
-                lightboxImg.focus();
+                updateCounter(currentIndex);
             }
 
             function closeLightbox() {
                 lightbox.classList.remove('active');
                 document.body.style.overflow = '';
+                if (swiperInstance) {
+                    // 暂停所有视频
+                    document.querySelectorAll('.swiper-slide video').forEach(v => v.pause());
+                    swiperInstance.destroy(true, true);
+                    swiperInstance = null;
+                }
+                swiperWrapper.innerHTML = '';
             }
 
-            function goPrev() {
-                if (IMAGES.length <= 1) return;
-                currentIndex = (currentIndex - 1 + IMAGES.length) % IMAGES.length;
-                updateLightboxImage();
+            function buildSwiper(initialSlide) {
+                swiperWrapper.innerHTML = '';
+                IMAGES.forEach((item) => {
+                    const slide = document.createElement('div');
+                    slide.className = 'swiper-slide';
+
+                    if (item.video) {
+                        // 视频 slide
+                        const video = document.createElement('video');
+                        video.src = item.video;
+                        video.controls = true;
+                        video.muted = true;        // 自动播放需要静音，用户可取消
+                        video.playsInline = true;
+                        video.preload = 'metadata';
+                        video.setAttribute('playsinline', '');
+                        // 阻止点击视频触发 Swiper 切换（但保留 controls 交互）
+                        video.addEventListener('click', (e) => e.stopPropagation());
+                        slide.appendChild(video);
+                    } else {
+                        // 图片 slide
+                        const img = document.createElement('img');
+                        img.src = item.src;
+                        img.alt = item.alt;
+                        slide.appendChild(img);
+                    }
+
+                    swiperWrapper.appendChild(slide);
+                });
+
+                if (swiperInstance) swiperInstance.destroy(true, true);
+
+                swiperInstance = new Swiper('.swiper-container', {
+                    initialSlide: initialSlide,
+                    effect: 'fade',
+                    fadeEffect: { crossFade: true },
+                    speed: 400,
+                    loop: true,
+                    navigation: {
+                        prevEl: prevBtn,
+                        nextEl: nextBtn,
+                    },
+                    on: {
+                        slideChangeTransitionEnd: function () {
+                            // 暂停所有视频，仅播放当前 slide 中的视频
+                            const slides = document.querySelectorAll('.swiper-slide');
+                            slides.forEach((slide, idx) => {
+                                const video = slide.querySelector('video');
+                                if (video) {
+                                    if (idx === this.activeIndex) {
+                                        // 当前 slide 有视频则播放（静音自动播放）
+                                        video.play().catch(() => { });
+                                    } else {
+                                        video.pause();
+                                    }
+                                }
+                            });
+                            // 更新计数器（loop 模式下使用 realIndex）
+                            const realIdx = this.realIndex;
+                            updateCounter(realIdx);
+                        },
+                        // 初始化时也触发一次
+                        init: function () {
+                            // 延时确保视频元素已渲染
+                            setTimeout(() => {
+                                const slides = document.querySelectorAll('.swiper-slide');
+                                slides.forEach((slide, idx) => {
+                                    const video = slide.querySelector('video');
+                                    if (video && idx === this.activeIndex) {
+                                        video.play().catch(() => { });
+                                    }
+                                });
+                            }, 200);
+                        }
+                    },
+                });
+
+                // 手动触发一次播放（初始）
+                setTimeout(() => {
+                    if (swiperInstance) {
+                        const activeSlide = swiperInstance.slides[swiperInstance.activeIndex];
+                        if (activeSlide) {
+                            const video = activeSlide.querySelector('video');
+                            if (video) {
+                                video.play().catch(() => { });
+                            }
+                        }
+                    }
+                }, 300);
             }
 
-            function goNext() {
-                if (IMAGES.length <= 1) return;
-                currentIndex = (currentIndex + 1) % IMAGES.length;
-                updateLightboxImage();
-            }
-
-            function updateLightboxImage() {
-                const item = IMAGES[currentIndex];
-                if (!item) return;
-                lightboxImg.src = item.src;
-                lightboxImg.alt = item.alt;
-                counter.textContent = `${currentIndex + 1} / ${IMAGES.length}`;
-                lightbox.setAttribute('aria-label', `图片 ${currentIndex + 1}: ${item.alt}`);
+            function updateCounter(index) {
+                counter.textContent = `${index + 1} / ${IMAGES.length}`;
             }
 
             // ============================================================
             // 5. 键盘事件
             // ============================================================
-            document.addEventListener('keydown', function(e) {
+            document.addEventListener('keydown', (e) => {
                 if (!lightbox.classList.contains('active')) return;
                 switch (e.key) {
                     case 'Escape':
@@ -528,11 +613,11 @@
                         e.preventDefault();
                         break;
                     case 'ArrowLeft':
-                        goPrev();
+                        if (swiperInstance) swiperInstance.slidePrev();
                         e.preventDefault();
                         break;
                     case 'ArrowRight':
-                        goNext();
+                        if (swiperInstance) swiperInstance.slideNext();
                         e.preventDefault();
                         break;
                 }
@@ -542,60 +627,23 @@
             // 6. UI 事件绑定
             // ============================================================
             closeBtn.addEventListener('click', closeLightbox);
-            prevBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                goPrev();
-            });
-            nextBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                goNext();
-            });
-
-            lightbox.addEventListener('click', function(e) {
-                if (e.target === lightbox || e.target === document.getElementById('lightboxImageWrap')) {
-                    closeLightbox();
-                }
-            });
-
-            lightboxImg.addEventListener('click', function(e) {
-                e.stopPropagation();
+            lightbox.addEventListener('click', (e) => {
+                if (e.target === lightbox) closeLightbox();
             });
 
             // ============================================================
-            // 7. 触摸滑动
-            // ============================================================
-            let touchStartX = 0;
-            let touchEndX = 0;
-
-            lightbox.addEventListener('touchstart', function(e) {
-                touchStartX = e.changedTouches[0].screenX;
-            }, { passive: true });
-
-            lightbox.addEventListener('touchend', function(e) {
-                touchEndX = e.changedTouches[0].screenX;
-                const diff = touchStartX - touchEndX;
-                if (Math.abs(diff) > 40) {
-                    if (diff > 0) {
-                        goNext();
-                    } else {
-                        goPrev();
-                    }
-                }
-            }, { passive: true });
-
-            // ============================================================
-            // 8. 初始化
+            // 7. 初始化
             // ============================================================
             renderGrid();
 
             if (!IMAGES.length) {
-                grid.innerHTML =
-                    '<p style="grid-column:1/-1; text-align:center; color:#8a7773; padding:3rem 0;">暂无照片，请添加图片。</p>';
+                grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#8a7773; padding:3rem 0;">暂无照片，请添加图片。</p>';
             }
 
-            console.log('📸 Daisy’s Photo Gallery 已加载，图片数量:', IMAGES.length);
+            console.log('📸 照片墙已加载，图片数量:', IMAGES.length);
         })();
     </script>
 
 </body>
+
 </html>

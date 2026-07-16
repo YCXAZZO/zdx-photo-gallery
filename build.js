@@ -2,18 +2,15 @@ const fs = require('fs');
 const path = require('path');
 const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 
-// 允许的图片扩展名
 const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
 const videoExtensions = ['.mov', '.mp4', '.m4v'];
 
-// 环境变量读取
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
 
-// 排序方向：'asc' 或 'desc'
 const SORT_ORDER = process.env.SORT_ORDER || 'asc';
 
 if (!R2_PUBLIC_URL || !R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME) {
@@ -34,7 +31,6 @@ async function listAllObjects() {
     const objects = [];
     let isTruncated = true;
     let continuationToken = undefined;
-
     try {
         while (isTruncated) {
             const command = new ListObjectsV2Command({
@@ -60,7 +56,6 @@ async function listAllObjects() {
 
 async function main() {
     console.log('📡 正在从 R2 获取文件列表...');
-
     let objects = [];
     try {
         objects = await listAllObjects();
@@ -76,7 +71,6 @@ async function main() {
         return;
     }
 
-    // 分离图片和视频
     const imageObjects = [];
     const videoObjects = [];
 
@@ -91,30 +85,28 @@ async function main() {
 
     console.log(`📸 找到图片 ${imageObjects.length} 个，视频 ${videoObjects.length} 个`);
 
-    // 构建图片列表
     const imageList = [];
 
     imageObjects.forEach(imgObj => {
         const imgKey = imgObj.Key;
         const baseName = path.basename(imgKey, path.extname(imgKey));
-        // 查找同名视频（不区分目录）
         const matchedVideo = videoObjects.find(vObj => {
             const vBase = path.basename(vObj.Key, path.extname(vObj.Key));
             return vBase === baseName;
         });
 
         const item = {
-            src: `${R2_PUBLIC_URL}/${imgKey}`,      // 图片的公开 URL
+            src: `${R2_PUBLIC_URL}/${imgKey}`,
             alt: `黛溪 · ${baseName}`,
             timestamp: imgObj.LastModified.getTime(),
         };
         if (matchedVideo) {
-            item.video = `${R2_PUBLIC_URL}/${matchedVideo.Key}`; // 视频的公开 URL
+            item.video = `${R2_PUBLIC_URL}/${matchedVideo.Key}`;
         }
         imageList.push(item);
     });
 
-    // 按时间排序
+    // 按时间排序（默认升序，可通过环境变量 SORT_ORDER 调整）
     if (SORT_ORDER.toLowerCase() === 'desc') {
         imageList.sort((a, b) => b.timestamp - a.timestamp);
         console.log('⏱️ 排序方向：最新在前 (desc)');
@@ -123,18 +115,9 @@ async function main() {
         console.log('⏱️ 排序方向：最早在前 (asc)');
     }
 
-    // 移除 timestamp 字段
-    const finalList = imageList.map(({ timestamp, ...rest }) => rest);
-
-    // 写入 data.json
-    fs.writeFileSync('data.json', JSON.stringify(finalList, null, 2), 'utf-8');
-    console.log(`✅ 已生成 data.json，共 ${finalList.length} 张图片（含 Live Photo）`);
-
-    // 打印前几项便于调试
-    console.log('📋 前 3 项预览：');
-    finalList.slice(0, 3).forEach(item => {
-        console.log(`  - src: ${item.src}, video: ${item.video || '无'}`);
-    });
+    // 直接输出 imageList（保留 timestamp）
+    fs.writeFileSync('data.json', JSON.stringify(imageList, null, 2), 'utf-8');
+    console.log(`✅ 已生成 data.json，共 ${imageList.length} 张图片（含 Live Photo）`);
 }
 
 main().catch(err => {

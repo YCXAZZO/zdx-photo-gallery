@@ -395,7 +395,8 @@
         <div class="sort-controls">
             <span class="label">排序：</span>
             <button class="sort-btn active" data-sort="time">时间轴</button>
-            <button class="sort-btn" data-sort="type">类型</button>
+            <button class="sort-btn" data-sort="photo-first">Photo先</button>
+            <button class="sort-btn" data-sort="live-first">Live先</button>
 
             <span class="sort-divider"></span>
 
@@ -489,11 +490,12 @@
                         const t2 = b.timestamp || 0;
                         return direction === 'asc' ? t1 - t2 : t2 - t1;
                     });
-                } else { // type
-                    // 先 photo（无 video）后 live（有 video）
+                } else {
+                    // 类型排序：photo-first 或 live-first
+                    const isPhotoFirst = sortType === 'photo-first';
                     const photos = sorted.filter(item => !item.video);
                     const lives = sorted.filter(item => item.video);
-                    // 组内按时间排序（方向由 direction 控制）
+                    // 组内按时间排序
                     const sortByTime = (arr) => arr.sort((a, b) => {
                         const t1 = a.timestamp || 0;
                         const t2 = b.timestamp || 0;
@@ -501,8 +503,8 @@
                     });
                     sortByTime(photos);
                     sortByTime(lives);
-                    // 合并：先 photo 后 live
-                    sorted.splice(0, sorted.length, ...photos, ...lives);
+                    // 合并
+                    sorted.splice(0, sorted.length, ...(isPhotoFirst ? [...photos, ...lives] : [...lives, ...photos]));
                 }
 
                 IMAGES = sorted;

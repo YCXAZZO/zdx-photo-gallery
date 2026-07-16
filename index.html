@@ -87,7 +87,7 @@
             justify-content: center;
             gap: 0.5rem 1rem;
             margin: 0.5rem 0 1.8rem;
-            padding: 0.6rem 1.2rem;
+            padding: 0.8rem 1.5rem;
             background: #fff;
             border-radius: 40px;
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
@@ -126,6 +126,22 @@
             width: 1px;
             height: 24px;
             background: #e0d6d2;
+        }
+
+        .sort-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* 子选项默认隐藏 */
+        .sub-options {
+            display: none;
+        }
+        .sub-options.show {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         /* ===== 网格 ===== */
@@ -339,6 +355,16 @@
             .sort-controls {
                 gap: 0.3rem 0.6rem;
                 padding: 0.4rem 0.8rem;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .sort-group {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .sub-options.show {
+                justify-content: center;
+                flex-wrap: wrap;
             }
             .sort-btn {
                 font-size: 0.75rem;
@@ -393,16 +419,28 @@
 
         <!-- ===== 排序控制栏 ===== -->
         <div class="sort-controls">
-            <span class="label">排序：</span>
-            <button class="sort-btn active" data-sort="time">时间轴</button>
-            <button class="sort-btn" data-sort="photo-first">Photo先</button>
-            <button class="sort-btn" data-sort="live-first">Live先</button>
+            <!-- 模式切换 -->
+            <div class="sort-group">
+                <span class="label">模式：</span>
+                <button class="sort-btn active" data-mode="time">时间轴</button>
+                <button class="sort-btn" data-mode="type">类型</button>
+            </div>
 
             <span class="sort-divider"></span>
 
-            <span class="label">方向：</span>
-            <button class="sort-btn active" data-direction="asc">旧→新</button>
-            <button class="sort-btn" data-direction="desc">新→旧</button>
+            <!-- 时间轴子选项 -->
+            <div class="sub-options show" id="timeOptions">
+                <span class="label">方向：</span>
+                <button class="sort-btn active" data-sub="old">旧在前</button>
+                <button class="sort-btn" data-sub="new">新在前</button>
+            </div>
+
+            <!-- 类型子选项 -->
+            <div class="sub-options" id="typeOptions">
+                <span class="label">分组：</span>
+                <button class="sort-btn active" data-sub="photo">Photo 在前</button>
+                <button class="sort-btn" data-sub="live">Live 在前</button>
+            </div>
         </div>
 
         <div class="grid" id="photoGrid"></div>
@@ -475,36 +513,43 @@
             // 3. 排序与渲染
             // ============================================================
             function applySortAndRender() {
-                // 获取当前选中的排序方式
-                const sortType = document.querySelector('.sort-btn[data-sort].active')?.dataset.sort || 'time';
-                const direction = document.querySelector('.sort-btn[data-direction].active')?.dataset.direction || 'asc';
-                console.log('🔀 排序方式:', sortType, '方向:', direction);
+                // 获取当前选中的模式
+                const activeMode = document.querySelector('.sort-btn[data-mode].active');
+                if (!activeMode) return;
+                const mode = activeMode.dataset.mode; // 'time' 或 'type'
+
+                // 获取该模式下的子选项
+                const subContainer = mode === 'time' ? document.getElementById('timeOptions') : document.getElementById(
+                'typeOptions');
+                const activeSub = subContainer.querySelector('.sort-btn[data-sub].active');
+                if (!activeSub) return;
+                const subValue = activeSub.dataset.sub; // 'old'/'new' 或 'photo'/'live'
+
+                console.log('🔀 模式:', mode, '子选项:', subValue);
 
                 // 基于原始数据排序
                 const sorted = [...rawImages];
 
-                if (sortType === 'time') {
+                if (mode === 'time') {
                     // 按时间戳排序
                     sorted.sort((a, b) => {
                         const t1 = a.timestamp || 0;
                         const t2 = b.timestamp || 0;
-                        return direction === 'asc' ? t1 - t2 : t2 - t1;
+                        return subValue === 'old' ? t1 - t2 : t2 - t1;
                     });
-                } else {
-                    // 类型排序：photo-first 或 live-first
-                    const isPhotoFirst = sortType === 'photo-first';
+                } else { // type
                     const photos = sorted.filter(item => !item.video);
                     const lives = sorted.filter(item => item.video);
-                    // 组内按时间排序
-                    const sortByTime = (arr) => arr.sort((a, b) => {
-                        const t1 = a.timestamp || 0;
-                        const t2 = b.timestamp || 0;
-                        return direction === 'asc' ? t1 - t2 : t2 - t1;
-                    });
+                    // 组内按时间升序（可固定，也可根据用户需求，但类型模式下没有方向选项，这里使用升序）
+                    const sortByTime = (arr) => arr.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                     sortByTime(photos);
                     sortByTime(lives);
                     // 合并
-                    sorted.splice(0, sorted.length, ...(isPhotoFirst ? [...photos, ...lives] : [...lives, ...photos]));
+                    if (subValue === 'photo') {
+                        sorted.splice(0, sorted.length, ...photos, ...lives);
+                    } else { // live
+                        sorted.splice(0, sorted.length, ...lives, ...photos);
+                    }
                 }
 
                 IMAGES = sorted;
@@ -517,7 +562,7 @@
             }
 
             // ============================================================
-            // 4. 渲染网格（与之前相同）
+            // 4. 渲染网格
             // ============================================================
             function renderGrid() {
                 grid.innerHTML = '';
@@ -596,7 +641,7 @@
             }
 
             // ============================================================
-            // 5. 灯箱 (Swiper) – 稳健版
+            // 5. 灯箱 (Swiper)
             // ============================================================
             function openLightbox(index) {
                 if (!IMAGES.length) return;
@@ -730,15 +775,32 @@
                 if (e.target === lightbox) closeLightbox();
             });
 
-            // ---- 排序按钮事件 ----
-            document.querySelectorAll('.sort-btn').forEach(btn => {
+            // ---- 模式切换 ----
+            document.querySelectorAll('.sort-btn[data-mode]').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    const group = this.dataset.sort ? 'sort' : 'direction';
-                    const value = this.dataset[group];
-                    // 切换同组按钮的 active 状态
-                    document.querySelectorAll(`.sort-btn[data-${group}]`).forEach(b => b.classList.remove('active'));
+                    // 切换模式按钮 active
+                    document.querySelectorAll('.sort-btn[data-mode]').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
-                    // 重新排序并渲染
+
+                    // 显示对应的子选项
+                    const mode = this.dataset.mode;
+                    document.getElementById('timeOptions').classList.toggle('show', mode === 'time');
+                    document.getElementById('typeOptions').classList.toggle('show', mode === 'type');
+
+                    // 重新排序
+                    applySortAndRender();
+                });
+            });
+
+            // ---- 子选项点击 ----
+            document.querySelectorAll('.sub-options .sort-btn[data-sub]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 只切换当前子选项组内的 active
+                    const parent = this.closest('.sub-options');
+                    parent.querySelectorAll('.sort-btn[data-sub]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // 重新排序
                     applySortAndRender();
                 });
             });

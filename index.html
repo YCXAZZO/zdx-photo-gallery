@@ -218,12 +218,6 @@
             right: 1.5rem;
         }
 
-        .nav-btn.swiper-button-disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-
         .close-btn {
             position: fixed;
             top: 1.8rem;
@@ -383,11 +377,10 @@
             const nextBtn = document.getElementById('nextBtn');
             const counter = document.getElementById('counter');
             const swiperWrapper = document.getElementById('swiperWrapper');
-            const swiperContainer = document.getElementById('swiperContainer');
 
             let swiperInstance = null;
             let currentIndex = 0;
-            let IMAGES = [];
+            let IMAGES = []; // 将从 data.json 加载
 
             // ============================================================
             // 2. 加载 data.json
@@ -411,7 +404,7 @@
             }
 
             // ============================================================
-            // 3. 渲染网格
+            // 3. 渲染网格（带 Live Photo 效果）
             // ============================================================
             function renderGrid() {
                 grid.innerHTML = '';
@@ -425,12 +418,14 @@
                     const wrapper = document.createElement('div');
                     wrapper.className = 'media-wrapper';
 
+                    // 图片（始终显示）
                     const img = document.createElement('img');
                     img.src = item.src;
                     img.alt = item.alt;
                     img.loading = 'lazy';
                     wrapper.appendChild(img);
 
+                    // 如果有视频，添加 video 并控制悬停/长按播放
                     if (item.video) {
                         const video = document.createElement('video');
                         video.src = item.video;
@@ -441,6 +436,7 @@
                         video.setAttribute('aria-hidden', 'true');
                         wrapper.appendChild(video);
 
+                        // 桌面：mouseenter 播放，mouseleave 暂停并重置
                         div.addEventListener('mouseenter', () => {
                             video.classList.add('active');
                             video.play().catch(() => {});
@@ -451,6 +447,7 @@
                             video.currentTime = 0;
                         });
 
+                        // 移动端：touchstart 长按播放，touchend 暂停
                         let touchTimer = null;
                         div.addEventListener('touchstart', () => {
                             touchTimer = setTimeout(() => {
@@ -474,6 +471,7 @@
 
                     div.appendChild(wrapper);
 
+                    // 点击打开灯箱
                     div.addEventListener('click', (e) => {
                         e.stopPropagation();
                         openLightbox(index);
@@ -490,16 +488,15 @@
             }
 
             // ============================================================
-            // 4. 灯箱 (Swiper) – 彻底重构，避免索引混乱
+            // 4. 灯箱 (Swiper) – 支持视频
             // ============================================================
             function openLightbox(index) {
                 if (!IMAGES.length) return;
                 currentIndex = Math.min(index, IMAGES.length - 1);
-                console.log('🖱️ 打开灯箱，目标索引:', currentIndex);
                 buildSwiper(currentIndex);
                 lightbox.classList.add('active');
                 document.body.style.overflow = 'hidden';
-                // 计数器会在 buildSwiper 的延迟跳转后更新
+                updateCounter(currentIndex);
             }
 
             function closeLightbox() {
@@ -514,15 +511,14 @@
             }
 
             function buildSwiper(initialSlide) {
-                // 清空并重建 slides
                 swiperWrapper.innerHTML = '';
                 IMAGES.forEach((item) => {
                     const slide = document.createElement('div');
                     slide.className = 'swiper-slide';
+
                     if (item.video) {
                         const video = document.createElement('video');
                         video.src = item.video;
-                        video.poster = item.src;
                         video.controls = true;
                         video.muted = true;
                         video.playsInline = true;
@@ -536,69 +532,63 @@
                         img.alt = item.alt;
                         slide.appendChild(img);
                     }
+
                     swiperWrapper.appendChild(slide);
                 });
 
-                // 销毁旧实例
-                if (swiperInstance) {
-                    swiperInstance.destroy(true, true);
-                    swiperInstance = null;
-                }
+                if (swiperInstance) swiperInstance.destroy(true, true);
 
-                // 创建新实例，初始索引设为0，稍后跳转
                 swiperInstance = new Swiper('.swiper-container', {
-                    initialSlide: 0,
+                    initialSlide: initialSlide,
                     effect: 'fade',
                     fadeEffect: { crossFade: true },
                     speed: 400,
-                    loop: false,
+                    loop: true,
                     navigation: {
-                        prevEl: '#prevBtn',
-                        nextEl: '#nextBtn',
+                        prevEl: prevBtn,
+                        nextEl: nextBtn,
                     },
                     on: {
                         slideChangeTransitionEnd: function() {
-                            const idx = this.activeIndex;
-                            updateCounter(idx);
-                            // 播放当前视频，暂停其他
-                            this.slides.forEach((slide, i) => {
+                            const slides = document.querySelectorAll('.swiper-slide');
+                            slides.forEach((slide, idx) => {
                                 const video = slide.querySelector('video');
                                 if (video) {
-                                    if (i === idx) {
+                                    if (idx === this.activeIndex) {
                                         video.play().catch(() => {});
                                     } else {
                                         video.pause();
                                     }
                                 }
                             });
+                            const realIdx = this.realIndex;
+                            updateCounter(realIdx);
+                        },
+                        init: function() {
+                            setTimeout(() => {
+                                const slides = document.querySelectorAll('.swiper-slide');
+                                slides.forEach((slide, idx) => {
+                                    const video = slide.querySelector('video');
+                                    if (video && idx === this.activeIndex) {
+                                        video.play().catch(() => {});
+                                    }
+                                });
+                            }, 200);
                         }
-                    }
+                    },
                 });
 
-                // 延迟执行跳转，确保实例完全初始化
                 setTimeout(() => {
                     if (swiperInstance) {
-                        // 检查当前索引是否已经正确，避免重复跳转
-                        if (swiperInstance.activeIndex !== initialSlide) {
-                            swiperInstance.slideTo(initialSlide, 0);
-                            updateCounter(initialSlide);
-                            // 触发播放当前视频（slideTo 会触发 slideChange，但可能不会播放视频，所以手动处理）
-                            const slide = swiperInstance.slides[initialSlide];
-                            if (slide) {
-                                const video = slide.querySelector('video');
-                                if (video) video.play().catch(() => {});
-                            }
-                        } else {
-                            // 如果已经是目标索引，直接播放视频并更新计数
-                            updateCounter(initialSlide);
-                            const slide = swiperInstance.slides[initialSlide];
-                            if (slide) {
-                                const video = slide.querySelector('video');
-                                if (video) video.play().catch(() => {});
+                        const activeSlide = swiperInstance.slides[swiperInstance.activeIndex];
+                        if (activeSlide) {
+                            const video = activeSlide.querySelector('video');
+                            if (video) {
+                                video.play().catch(() => {});
                             }
                         }
                     }
-                }, 80);
+                }, 300);
             }
 
             function updateCounter(index) {

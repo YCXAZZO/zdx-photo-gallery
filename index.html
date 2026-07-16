@@ -218,6 +218,12 @@
             right: 1.5rem;
         }
 
+        .nav-btn.swiper-button-disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
         .close-btn {
             position: fixed;
             top: 1.8rem;
@@ -377,10 +383,11 @@
             const nextBtn = document.getElementById('nextBtn');
             const counter = document.getElementById('counter');
             const swiperWrapper = document.getElementById('swiperWrapper');
+            const swiperContainer = document.getElementById('swiperContainer');
 
             let swiperInstance = null;
             let currentIndex = 0;
-            let IMAGES = []; // 将从 data.json 加载
+            let IMAGES = [];
 
             // ============================================================
             // 2. 加载 data.json
@@ -404,7 +411,7 @@
             }
 
             // ============================================================
-            // 3. 渲染网格（带 Live Photo 效果）
+            // 3. 渲染网格
             // ============================================================
             function renderGrid() {
                 grid.innerHTML = '';
@@ -418,14 +425,12 @@
                     const wrapper = document.createElement('div');
                     wrapper.className = 'media-wrapper';
 
-                    // 图片（始终显示）
                     const img = document.createElement('img');
                     img.src = item.src;
                     img.alt = item.alt;
                     img.loading = 'lazy';
                     wrapper.appendChild(img);
 
-                    // 如果有视频，添加 video 并控制悬停/长按播放
                     if (item.video) {
                         const video = document.createElement('video');
                         video.src = item.video;
@@ -436,7 +441,6 @@
                         video.setAttribute('aria-hidden', 'true');
                         wrapper.appendChild(video);
 
-                        // 桌面：mouseenter 播放，mouseleave 暂停并重置
                         div.addEventListener('mouseenter', () => {
                             video.classList.add('active');
                             video.play().catch(() => {});
@@ -447,7 +451,6 @@
                             video.currentTime = 0;
                         });
 
-                        // 移动端：touchstart 长按播放，touchend 暂停
                         let touchTimer = null;
                         div.addEventListener('touchstart', () => {
                             touchTimer = setTimeout(() => {
@@ -471,7 +474,6 @@
 
                     div.appendChild(wrapper);
 
-                    // 点击打开灯箱
                     div.addEventListener('click', (e) => {
                         e.stopPropagation();
                         openLightbox(index);
@@ -488,15 +490,15 @@
             }
 
             // ============================================================
-            // 4. 灯箱 (Swiper) – 支持视频
+            // 4. 灯箱 (Swiper) – 稳健版
             // ============================================================
             function openLightbox(index) {
                 if (!IMAGES.length) return;
                 currentIndex = Math.min(index, IMAGES.length - 1);
+                console.log('🖱️ 打开灯箱，目标索引:', currentIndex);
                 buildSwiper(currentIndex);
                 lightbox.classList.add('active');
                 document.body.style.overflow = 'hidden';
-                updateCounter(currentIndex);
             }
 
             function closeLightbox() {
@@ -511,20 +513,21 @@
             }
 
             function buildSwiper(initialSlide) {
+                // 清空并重建 slides
                 swiperWrapper.innerHTML = '';
                 IMAGES.forEach((item) => {
                     const slide = document.createElement('div');
                     slide.className = 'swiper-slide';
-
                     if (item.video) {
                         const video = document.createElement('video');
                         video.src = item.video;
+                        video.poster = item.src;
                         video.controls = true;
                         video.muted = true;
                         video.playsInline = true;
                         video.preload = 'metadata';
                         video.setAttribute('playsinline', '');
-                        video.addEventListener('click', (e) => e.stopPropagation());
+                        // 重要：不要阻止事件冒泡，以免影响 Swiper 触摸
                         slide.appendChild(video);
                     } else {
                         const img = document.createElement('img');
@@ -532,63 +535,69 @@
                         img.alt = item.alt;
                         slide.appendChild(img);
                     }
-
                     swiperWrapper.appendChild(slide);
                 });
 
-                if (swiperInstance) swiperInstance.destroy(true, true);
+                // 销毁旧实例
+                if (swiperInstance) {
+                    swiperInstance.destroy(true, true);
+                    swiperInstance = null;
+                }
 
-                swiperInstance = new Swiper('.swiper-container', {
+                // 创建新实例，使用 objects 引用导航
+                swiperInstance = new Swiper(swiperContainer, {
                     initialSlide: initialSlide,
+                    slidesPerView: 1,
+                    centeredSlides: true,
                     effect: 'fade',
                     fadeEffect: { crossFade: true },
                     speed: 400,
-                    loop: true,
+                    loop: false,
+                    touchEventsTarget: 'container', // 确保触摸事件在容器层捕获
                     navigation: {
                         prevEl: prevBtn,
                         nextEl: nextBtn,
                     },
+                    // 开启观察器，确保尺寸变化时更新
+                    observer: true,
+                    observeParents: true,
                     on: {
                         slideChangeTransitionEnd: function() {
-                            const slides = document.querySelectorAll('.swiper-slide');
-                            slides.forEach((slide, idx) => {
+                            const idx = this.activeIndex;
+                            updateCounter(idx);
+                            // 播放当前视频，暂停其他
+                            this.slides.forEach((slide, i) => {
                                 const video = slide.querySelector('video');
                                 if (video) {
-                                    if (idx === this.activeIndex) {
+                                    if (i === idx) {
                                         video.play().catch(() => {});
                                     } else {
                                         video.pause();
                                     }
                                 }
                             });
-                            const realIdx = this.realIndex;
-                            updateCounter(realIdx);
                         },
                         init: function() {
-                            setTimeout(() => {
-                                const slides = document.querySelectorAll('.swiper-slide');
-                                slides.forEach((slide, idx) => {
-                                    const video = slide.querySelector('video');
-                                    if (video && idx === this.activeIndex) {
-                                        video.play().catch(() => {});
-                                    }
-                                });
-                            }, 200);
-                        }
-                    },
-                });
-
-                setTimeout(() => {
-                    if (swiperInstance) {
-                        const activeSlide = swiperInstance.slides[swiperInstance.activeIndex];
-                        if (activeSlide) {
-                            const video = activeSlide.querySelector('video');
-                            if (video) {
-                                video.play().catch(() => {});
+                            // 初始化后强制更新导航状态
+                            this.navigation.update();
+                            updateCounter(this.activeIndex);
+                            // 播放初始视频
+                            const slide = this.slides[this.activeIndex];
+                            if (slide) {
+                                const video = slide.querySelector('video');
+                                if (video) video.play().catch(() => {});
                             }
                         }
                     }
-                }, 300);
+                });
+
+                // 额外保险：如果初始索引不正确，跳转
+                setTimeout(() => {
+                    if (swiperInstance && swiperInstance.activeIndex !== initialSlide) {
+                        swiperInstance.slideTo(initialSlide, 0);
+                        updateCounter(initialSlide);
+                    }
+                }, 100);
             }
 
             function updateCounter(index) {

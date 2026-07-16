@@ -364,38 +364,11 @@
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 
     <script>
-        (function () {
+        (function() {
             'use strict';
 
             // ============================================================
-            // 1. 图片数据（请替换为实际路径）
-            //    若需要 Live Photo，添加 video 字段（视频格式建议 MP4/MOV）
-            // ============================================================
-            const IMAGES = [
-                { src: 'images/photo/photo-01.jpg', alt: '黛溪 · 光影一' },
-                { src: 'images/photo/photo-02.jpg', alt: '黛溪 · 光影二' },
-                { src: 'images/photo/photo-03.jpg', alt: '黛溪 · 光影三' },
-                { src: 'images/photo/photo-04.jpg', alt: '黛溪 · 光影四' },
-                { src: 'images/photo/photo-05.jpg', alt: '黛溪 · 光影五' },
-                { src: 'images/photo/photo-06.jpg', alt: '黛溪 · 光影六' },
-                { src: 'images/photo/photo-07.jpg', alt: '黛溪 · 光影七' },
-                { src: 'images/photo/photo-08.jpg', alt: '黛溪 · 光影八' },
-                { src: 'images/photo/photo-09.jpg', alt: '黛溪 · 光影九' },
-                { src: 'images/photo/photo-10.jpg', alt: '黛溪 · 光影十' },
-                { src: 'images/photo/photo-11.jpg', alt: '黛溪 · 光影十' },
-                { src: 'images/live/live-01.jpg', video: 'images/live/live-01.mp4', alt: '黛溪 · 动态一' },
-                { src: 'images/live/live-02.jpg', video: 'images/live/live-02.mp4', alt: '黛溪 · 动态一' },
-                { src: 'images/live/live-03.jpg', video: 'images/live/live-03.mp4', alt: '黛溪 · 动态一' },
-                { src: 'images/live/live-04.jpg', video: 'images/live/live-04.mp4', alt: '黛溪 · 动态一' },
-                { src: 'images/live/live-05.jpg', video: 'images/live/live-05.mp4', alt: '黛溪 · 动态一' },
-                { src: 'images/live/live-06.jpg', video: 'images/live/live-06.mp4', alt: '黛溪 · 动态一' },
-                { src: 'images/live/live-07.jpg', video: 'images/live/live-07.mp4', alt: '黛溪 · 动态一' },
-                { src: 'images/live/live-08.jpg', video: 'images/live/live-08.mp4', alt: '黛溪 · 动态一' },
-                // 可继续添加其他 Live 照片
-            ];
-
-            // ============================================================
-            // 2. DOM 引用
+            // 1. DOM 引用
             // ============================================================
             const grid = document.getElementById('photoGrid');
             const lightbox = document.getElementById('lightbox');
@@ -407,6 +380,28 @@
 
             let swiperInstance = null;
             let currentIndex = 0;
+            let IMAGES = []; // 将从 data.json 加载
+
+            // ============================================================
+            // 2. 加载 data.json
+            // ============================================================
+            async function loadImages() {
+                try {
+                    const response = await fetch('data.json');
+                    if (!response.ok) throw new Error('data.json 加载失败');
+                    const data = await response.json();
+                    IMAGES = data;
+                    if (!IMAGES.length) {
+                        grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#8a7773; padding:3rem 0;">暂无照片，请添加图片。</p>';
+                        return;
+                    }
+                    renderGrid();
+                    console.log('📸 照片墙已加载，图片数量:', IMAGES.length);
+                } catch (error) {
+                    console.error('加载图片数据失败:', error);
+                    grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#e0786a; padding:3rem 0;">⚠️ 数据加载失败，请检查部署。</p>';
+                }
+            }
 
             // ============================================================
             // 3. 渲染网格（带 Live Photo 效果）
@@ -444,7 +439,7 @@
                         // 桌面：mouseenter 播放，mouseleave 暂停并重置
                         div.addEventListener('mouseenter', () => {
                             video.classList.add('active');
-                            video.play().catch(() => { });
+                            video.play().catch(() => {});
                         });
                         div.addEventListener('mouseleave', () => {
                             video.classList.remove('active');
@@ -454,10 +449,10 @@
 
                         // 移动端：touchstart 长按播放，touchend 暂停
                         let touchTimer = null;
-                        div.addEventListener('touchstart', (e) => {
+                        div.addEventListener('touchstart', () => {
                             touchTimer = setTimeout(() => {
                                 video.classList.add('active');
-                                video.play().catch(() => { });
+                                video.play().catch(() => {});
                             }, 300);
                         }, { passive: true });
                         div.addEventListener('touchend', () => {
@@ -508,7 +503,6 @@
                 lightbox.classList.remove('active');
                 document.body.style.overflow = '';
                 if (swiperInstance) {
-                    // 暂停所有视频
                     document.querySelectorAll('.swiper-slide video').forEach(v => v.pause());
                     swiperInstance.destroy(true, true);
                     swiperInstance = null;
@@ -523,19 +517,16 @@
                     slide.className = 'swiper-slide';
 
                     if (item.video) {
-                        // 视频 slide
                         const video = document.createElement('video');
                         video.src = item.video;
                         video.controls = true;
-                        video.muted = true;        // 自动播放需要静音，用户可取消
+                        video.muted = true;
                         video.playsInline = true;
                         video.preload = 'metadata';
                         video.setAttribute('playsinline', '');
-                        // 阻止点击视频触发 Swiper 切换（但保留 controls 交互）
                         video.addEventListener('click', (e) => e.stopPropagation());
                         slide.appendChild(video);
                     } else {
-                        // 图片 slide
                         const img = document.createElement('img');
                         img.src = item.src;
                         img.alt = item.alt;
@@ -558,33 +549,28 @@
                         nextEl: nextBtn,
                     },
                     on: {
-                        slideChangeTransitionEnd: function () {
-                            // 暂停所有视频，仅播放当前 slide 中的视频
+                        slideChangeTransitionEnd: function() {
                             const slides = document.querySelectorAll('.swiper-slide');
                             slides.forEach((slide, idx) => {
                                 const video = slide.querySelector('video');
                                 if (video) {
                                     if (idx === this.activeIndex) {
-                                        // 当前 slide 有视频则播放（静音自动播放）
-                                        video.play().catch(() => { });
+                                        video.play().catch(() => {});
                                     } else {
                                         video.pause();
                                     }
                                 }
                             });
-                            // 更新计数器（loop 模式下使用 realIndex）
                             const realIdx = this.realIndex;
                             updateCounter(realIdx);
                         },
-                        // 初始化时也触发一次
-                        init: function () {
-                            // 延时确保视频元素已渲染
+                        init: function() {
                             setTimeout(() => {
                                 const slides = document.querySelectorAll('.swiper-slide');
                                 slides.forEach((slide, idx) => {
                                     const video = slide.querySelector('video');
                                     if (video && idx === this.activeIndex) {
-                                        video.play().catch(() => { });
+                                        video.play().catch(() => {});
                                     }
                                 });
                             }, 200);
@@ -592,14 +578,13 @@
                     },
                 });
 
-                // 手动触发一次播放（初始）
                 setTimeout(() => {
                     if (swiperInstance) {
                         const activeSlide = swiperInstance.slides[swiperInstance.activeIndex];
                         if (activeSlide) {
                             const video = activeSlide.querySelector('video');
                             if (video) {
-                                video.play().catch(() => { });
+                                video.play().catch(() => {});
                             }
                         }
                     }
@@ -640,15 +625,9 @@
             });
 
             // ============================================================
-            // 7. 初始化
+            // 7. 启动
             // ============================================================
-            renderGrid();
-
-            if (!IMAGES.length) {
-                grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#8a7773; padding:3rem 0;">暂无照片，请添加图片。</p>';
-            }
-
-            console.log('📸 照片墙已加载，图片数量:', IMAGES.length);
+            loadImages();
         })();
     </script>
 

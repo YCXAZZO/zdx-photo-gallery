@@ -510,37 +510,36 @@
                 swiperWrapper.innerHTML = '';
             }
 
-function buildSwiper(initialSlide) {
-    swiperWrapper.innerHTML = '';
-    console.log('🔨 构建 Swiper，初始索引:', initialSlide);
-    IMAGES.forEach((item, idx) => {
-        console.log(`  Slide ${idx}: src=${item.src}, video=${item.video || '无'}`);
-        const slide = document.createElement('div');
-        slide.className = 'swiper-slide';
+            function buildSwiper(initialSlide) {
+                swiperWrapper.innerHTML = '';
+                console.log('🔨 构建 Swiper，初始索引:', initialSlide);
+                IMAGES.forEach((item, idx) => {
+                    console.log(`  Slide ${idx}: src=${item.src}, video=${item.video || '无'}`);
+                    const slide = document.createElement('div');
+                    slide.className = 'swiper-slide';
 
-        if (item.video) {
-            const video = document.createElement('video');
-            video.src = item.video;
-            video.poster = item.src;   // 关键：使用静态图片作为海报
-            video.controls = true;
-            video.muted = true;
-            video.playsInline = true;
-            video.preload = 'metadata';
-            video.setAttribute('playsinline', '');
-            video.addEventListener('click', (e) => e.stopPropagation());
-            slide.appendChild(video);
-        } else {
-            const img = document.createElement('img');
-            img.src = item.src;
-            img.alt = item.alt;
-            slide.appendChild(img);
-        }
+                    if (item.video) {
+                        // 视频 slide
+                        const video = document.createElement('video');
+                        video.src = item.video;
+                        video.poster = item.src;   // 关键：使用静态图片作为海报
+                        video.controls = true;
+                        video.muted = true;
+                        video.playsInline = true;
+                        video.preload = 'metadata';
+                        video.setAttribute('playsinline', '');
+                        video.addEventListener('click', (e) => e.stopPropagation());
+                        slide.appendChild(video);
+                    } else {
+                        // 图片 slide
+                        const img = document.createElement('img');
+                        img.src = item.src;
+                        img.alt = item.alt;
+                        slide.appendChild(img);
+                    }
 
-        swiperWrapper.appendChild(slide);
-    });
-
-    // ... 其余 Swiper 初始化代码不变
-}
+                    swiperWrapper.appendChild(slide);
+                });
 
                 if (swiperInstance) swiperInstance.destroy(true, true);
 

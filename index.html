@@ -495,11 +495,12 @@
             }
 
             // ============================================================
-            // 4. 灯箱 (Swiper) – 彻底修复初始显示和导航问题
+            // 4. 灯箱 (Swiper) – 最稳定版本
             // ============================================================
             function openLightbox(index) {
                 if (!IMAGES.length) return;
                 currentIndex = Math.min(index, IMAGES.length - 1);
+                console.log('🖱️ 打开灯箱，目标索引:', currentIndex);
                 buildSwiper(currentIndex);
                 lightbox.classList.add('active');
                 document.body.style.overflow = 'hidden';
@@ -518,14 +519,14 @@
             }
 
             function buildSwiper(initialSlide) {
-                // 清空并重建 slides
+                // 清空 wrapper
                 swiperWrapper.innerHTML = '';
                 console.log('🔨 构建 Swiper，目标索引:', initialSlide);
+                // 生成 slides
                 IMAGES.forEach((item, idx) => {
                     console.log(`  Slide ${idx}: src=${item.src}, video=${item.video || '无'}`);
                     const slide = document.createElement('div');
                     slide.className = 'swiper-slide';
-
                     if (item.video) {
                         const video = document.createElement('video');
                         video.src = item.video;
@@ -552,35 +553,18 @@
                     swiperInstance = null;
                 }
 
-                // 重新初始化
-                swiperInstance = new Swiper(swiperContainer, {
-                    initialSlide: 0,          // 先设为0，稍后强制跳转
+                // 初始化新实例（使用选择器字符串方式，更稳定）
+                swiperInstance = new Swiper('.swiper-container', {
+                    initialSlide: initialSlide, // 直接设定初始索引
                     effect: 'fade',
                     fadeEffect: { crossFade: true },
                     speed: 400,
                     loop: false,
                     navigation: {
-                        prevEl: prevBtn,
-                        nextEl: nextBtn,
+                        prevEl: '#prevBtn',   // 使用 ID 选择器
+                        nextEl: '#nextBtn',
                     },
-                    // 在初始化完成后立即跳转
                     on: {
-                        init: function() {
-                            // 立即跳转到目标索引
-                            this.slideTo(initialSlide, 0);
-                            // 更新计数
-                            updateCounter(initialSlide);
-                            // 如果当前 slide 有视频，尝试播放
-                            const currentSlide = this.slides[this.activeIndex];
-                            if (currentSlide) {
-                                const video = currentSlide.querySelector('video');
-                                if (video) {
-                                    video.play().catch(() => {});
-                                }
-                            }
-                            // 启用/禁用导航按钮
-                            this.navigation.update();
-                        },
                         slideChangeTransitionEnd: function() {
                             const slides = document.querySelectorAll('.swiper-slide');
                             slides.forEach((slide, idx) => {
@@ -594,17 +578,40 @@
                                 }
                             });
                             updateCounter(this.activeIndex);
+                            console.log('🔄 当前激活索引:', this.activeIndex);
+                        },
+                        init: function() {
+                            console.log('✅ Swiper 初始化完成，当前索引:', this.activeIndex);
+                            // 如果因为某些原因索引不对，强制修正
+                            if (this.activeIndex !== initialSlide) {
+                                console.warn('⚠️ 索引不匹配，强制跳转到:', initialSlide);
+                                this.slideTo(initialSlide, 0);
+                            }
+                            // 播放当前视频
+                            const currentSlide = this.slides[this.activeIndex];
+                            if (currentSlide) {
+                                const video = currentSlide.querySelector('video');
+                                if (video) {
+                                    video.play().catch(() => {});
+                                }
+                            }
+                            // 更新导航按钮状态
+                            this.navigation.update();
                         }
                     }
                 });
 
-                // 额外保险：如果初始化后还没跳转，再强制一次
+                // 双重保险：再延迟强制一次
                 setTimeout(() => {
-                    if (swiperInstance && swiperInstance.activeIndex !== initialSlide) {
-                        swiperInstance.slideTo(initialSlide, 0);
-                        updateCounter(initialSlide);
+                    if (swiperInstance) {
+                        const current = swiperInstance.activeIndex;
+                        if (current !== initialSlide) {
+                            console.warn('⏰ 延迟修正索引:', initialSlide);
+                            swiperInstance.slideTo(initialSlide, 0);
+                            updateCounter(initialSlide);
+                        }
                     }
-                }, 100);
+                }, 200);
             }
 
             function updateCounter(index) {

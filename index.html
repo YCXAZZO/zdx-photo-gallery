@@ -67,7 +67,6 @@
             padding: 0;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
-            /* 消除移动端点击闪框 */
         }
 
         body {
@@ -327,6 +326,11 @@
         }
 
         .grid-item .media-wrapper video.active {
+            opacity: 1;
+        }
+
+        /* 纯视频直接显示（不透明） */
+        .grid-item .media-wrapper video.visible {
             opacity: 1;
         }
 
@@ -997,9 +1001,12 @@
             }
 
             // ============================================================
-            // 3. 媒体类型
+            // 3. 媒体类型（区分纯视频）
             // ============================================================
             function getMediaType(item) {
+                if (item.isVideoOnly) {
+                    return 'video';
+                }
                 if (item.video) {
                     const srcLower = item.src.toLowerCase();
                     const videoLower = item.video.toLowerCase();
@@ -1113,7 +1120,6 @@
 
                 if (mode === 'time') {
                     const unpinned = unpinnedData || [];
-                    // --- 修改：按年-月分组 ---
                     const yearMonthGroups = {};
                     unpinned.forEach(item => {
                         const date = new Date(item.timestamp);
@@ -1122,13 +1128,11 @@
                         yearMonthGroups[yearMonth].push(item);
                     });
                     const yearMonths = Object.keys(yearMonthGroups).sort((a, b) => {
-                        // 按子选项排序（旧在前或新在前）
                         return subValue === 'old' ? a.localeCompare(b) : b.localeCompare(a);
                     });
                     yearMonths.forEach((yearMonth) => {
                         const key = `ym-${yearMonth}`;
                         if (collapseState[key] === undefined) collapseState[key] = false;
-                        // 分割线显示为 "2023-10"
                         const divider = createDivider(yearMonth, '', key, collapseState[key]);
                         grid.appendChild(divider);
                         const itemsContainer = document.createElement('div');
@@ -1177,6 +1181,14 @@
                         const src = img.src;
                         const found = rawImages.find(item => item.src === src);
                         if (found) IMAGES.push(found);
+                    } else {
+                        // 纯视频（没有 img）
+                        const video = el.querySelector('video');
+                        if (video) {
+                            const src = video.src;
+                            const found = rawImages.find(item => item.video === src);
+                            if (found) IMAGES.push(found);
+                        }
                     }
                 });
                 if (IMAGES.length === 0) {
@@ -1230,25 +1242,20 @@
             }
 
             // ============================================================
-            // 7. 创建卡片（包含点击灯箱）
+            // 7. 创建卡片（支持纯视频）
             // ============================================================
             function createCard(item) {
                 const div = document.createElement('div');
                 div.className = 'grid-item';
                 div.setAttribute('role', 'button');
                 div.setAttribute('tabindex', '0');
-                div.setAttribute('aria-label', `查看图片: ${item.alt}`);
+                div.setAttribute('aria-label', `查看${item.isVideoOnly ? '视频' : '图片'}: ${item.alt}`);
 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'media-wrapper';
 
-                const img = document.createElement('img');
-                img.src = item.src;
-                img.alt = item.alt;
-                img.loading = 'lazy';
-                wrapper.appendChild(img);
-
-                if (item.video) {
+                if (item.isVideoOnly) {
+                    // 纯视频：直接显示 video（第一帧作为封面）
                     const video = document.createElement('video');
                     video.src = item.video;
                     video.muted = true;
@@ -1256,14 +1263,14 @@
                     video.loop = true;
                     video.preload = 'metadata';
                     video.setAttribute('aria-hidden', 'true');
+                    video.classList.add('visible'); // 始终显示
                     wrapper.appendChild(video);
 
+                    // 悬停/触摸播放
                     div.addEventListener('mouseenter', () => {
-                        video.classList.add('active');
                         video.play().catch(() => {});
                     });
                     div.addEventListener('mouseleave', () => {
-                        video.classList.remove('active');
                         video.pause();
                         video.currentTime = 0;
                     });
@@ -1271,34 +1278,80 @@
                     let touchTimer = null;
                     div.addEventListener('touchstart', () => {
                         touchTimer = setTimeout(() => {
-                            video.classList.add('active');
                             video.play().catch(() => {});
                         }, 300);
                     }, { passive: true });
                     div.addEventListener('touchend', () => {
                         clearTimeout(touchTimer);
-                        video.classList.remove('active');
                         video.pause();
                         video.currentTime = 0;
                     }, { passive: true });
                     div.addEventListener('touchcancel', () => {
                         clearTimeout(touchTimer);
-                        video.classList.remove('active');
                         video.pause();
                         video.currentTime = 0;
                     }, { passive: true });
+                } else {
+                    // 普通图片或 Live Photo
+                    const img = document.createElement('img');
+                    img.src = item.src;
+                    img.alt = item.alt;
+                    img.loading = 'lazy';
+                    wrapper.appendChild(img);
+
+                    if (item.video) {
+                        const video = document.createElement('video');
+                        video.src = item.video;
+                        video.muted = true;
+                        video.playsInline = true;
+                        video.loop = true;
+                        video.preload = 'metadata';
+                        video.setAttribute('aria-hidden', 'true');
+                        wrapper.appendChild(video);
+
+                        div.addEventListener('mouseenter', () => {
+                            video.classList.add('active');
+                            video.play().catch(() => {});
+                        });
+                        div.addEventListener('mouseleave', () => {
+                            video.classList.remove('active');
+                            video.pause();
+                            video.currentTime = 0;
+                        });
+
+                        let touchTimer = null;
+                        div.addEventListener('touchstart', () => {
+                            touchTimer = setTimeout(() => {
+                                video.classList.add('active');
+                                video.play().catch(() => {});
+                            }, 300);
+                        }, { passive: true });
+                        div.addEventListener('touchend', () => {
+                            clearTimeout(touchTimer);
+                            video.classList.remove('active');
+                            video.pause();
+                            video.currentTime = 0;
+                        }, { passive: true });
+                        div.addEventListener('touchcancel', () => {
+                            clearTimeout(touchTimer);
+                            video.classList.remove('active');
+                            video.pause();
+                            video.currentTime = 0;
+                        }, { passive: true });
+                    }
                 }
 
                 div.appendChild(wrapper);
 
+                // 点击打开灯箱
                 div.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const src = img.src;
-                    const idx = IMAGES.findIndex(item => item.src === src);
+                    let src = item.isVideoOnly ? item.video : item.src;
+                    const idx = IMAGES.findIndex(i => (i.isVideoOnly ? i.video : i.src) === src);
                     if (idx !== -1) {
                         openLightbox(idx);
                     } else {
-                        const fallbackIdx = rawImages.findIndex(item => item.src === src);
+                        const fallbackIdx = rawImages.findIndex(i => (i.isVideoOnly ? i.video : i.src) === src);
                         if (fallbackIdx !== -1) openLightbox(fallbackIdx);
                     }
                 });
@@ -1348,7 +1401,7 @@
                     if (item.video) {
                         const video = document.createElement('video');
                         video.src = item.video;
-                        video.poster = item.src;
+                        video.poster = item.isVideoOnly ? '' : item.src; // 纯视频没有 poster
                         video.controls = true;
                         video.muted = true;
                         video.playsInline = true;

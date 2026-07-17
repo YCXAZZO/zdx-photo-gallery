@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>黛溪的照片墙</title>
+    <title>黛溪的照片墙<b>「Beta阶段 仅供预览」</b></title>
 
     <!-- ===== 字体 ===== -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -109,6 +109,13 @@
             cursor: pointer;
             transition: all 0.2s;
             font-family: inherit;
+            /* 去除默认蓝色点击框 */
+            outline: none;
+        }
+
+        .sort-btn:focus-visible {
+            outline: 2px solid #f2cdc4;
+            outline-offset: 2px;
         }
 
         .sort-btn:hover {
@@ -164,6 +171,12 @@
             transition: opacity 0.2s;
             border-bottom: 1px solid #e8e0dc;
             margin-bottom: 0.4rem;
+            outline: none;
+        }
+
+        .section-divider:focus-visible {
+            outline: 2px solid #f2cdc4;
+            outline-offset: 2px;
         }
 
         .section-divider:hover {
@@ -229,6 +242,12 @@
             cursor: pointer;
             aspect-ratio: 4 / 5;
             transition: transform 0.25s, box-shadow 0.3s;
+            outline: none;
+        }
+
+        .grid-item:focus-visible {
+            outline: 2px solid #f2cdc4;
+            outline-offset: 2px;
         }
 
         .grid-item:hover {
@@ -335,6 +354,12 @@
             cursor: pointer;
             z-index: 10001;
             transition: background 0.25s;
+            outline: none;
+        }
+
+        .nav-btn:focus-visible {
+            outline: 2px solid #f2cdc4;
+            outline-offset: 2px;
         }
 
         .nav-btn:hover {
@@ -369,6 +394,12 @@
             color: #fff;
             cursor: pointer;
             transition: background 0.25s;
+            outline: none;
+        }
+
+        .close-btn:focus-visible {
+            outline: 2px solid #f2cdc4;
+            outline-offset: 2px;
         }
 
         .close-btn:hover {
@@ -405,6 +436,12 @@
             text-decoration: none;
             transition: background 0.25s, transform 0.2s;
             box-shadow: 0 4px 12px rgba(242, 205, 196, 0.3);
+            outline: none;
+        }
+
+        .back-home:focus-visible {
+            outline: 2px solid #3d2c2a;
+            outline-offset: 2px;
         }
 
         .back-home:hover {
@@ -488,7 +525,7 @@
         <header class="gallery-header">
             <h1>#黛机时刻</h1>
             <p class="subtitle">​​Daisy’s Photo Gallery​ <span class="heart">❤️</span></p>
-            <p class="hint">点击任意照片放大 · 左右滑动浏览<br><b>「Beta阶段 仅供预览」</b></p>
+            <p class="hint">点击任意照片放大 · 左右滑动浏览</p>
         </header>
 
         <!-- ===== 排序控制栏 ===== -->
@@ -514,7 +551,7 @@
                 <span class="label">分组：</span>
                 <button class="sort-btn active" data-sub="photo">Photo 在前</button>
                 <button class="sort-btn" data-sub="live">Live 在前</button>
-                <button class="sort-btn" data-sub="video">Vlog 在前</button>
+                <button class="sort-btn" data-sub="video">Video 在前</button>
             </div>
         </div>
 
@@ -713,7 +750,7 @@
                 } else {
                     // 类型模式：使用已分组的 IMAGES
                     const typeLabels = {
-                        photo: { zh: '照片', en: 'Photo' },
+                        photo: { zh: '照片', en: 'Photos' },
                         live: { zh: '实况', en: 'Live' },
                         video: { zh: '视频', en: 'VLog' }
                     };

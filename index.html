@@ -1115,7 +1115,8 @@
                     const unpinned = unpinnedData || [];
                     const yearGroups = {};
                     unpinned.forEach(item => {
-                        const year = new Date(item.timestamp).getFullYear();
+                        const date = new Date(item.timestamp);
+                        const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                         if (!yearGroups[year]) yearGroups[year] = [];
                         yearGroups[year].push(item);
                     });

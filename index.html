@@ -152,6 +152,74 @@
             justify-content: center;
         }
 
+        /* ===== 分割线样式 ===== */
+        .section-divider {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.8rem 0 0.4rem 0;
+            cursor: pointer;
+            user-select: none;
+            transition: opacity 0.2s;
+            border-bottom: 1px solid #e8e0dc;
+            margin-bottom: 0.4rem;
+        }
+
+        .section-divider:hover {
+            opacity: 0.7;
+        }
+
+        .section-divider .line {
+            flex: 1;
+            height: 1px;
+            background: #e0d6d2;
+        }
+
+        .section-divider .label {
+            display: flex;
+            align-items: baseline;
+            gap: 0.3rem;
+            white-space: nowrap;
+            padding: 0 0.5rem;
+            background: #fcf8f6;
+            /* 与页面背景一致 */;
+        }
+
+        .section-divider .label .zh {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #3d2c2a;
+        }
+
+        .section-divider .label .en {
+            font-weight: 400;
+            font-size: 0.75rem;
+            color: #b5a39e;
+            letter-spacing: 0.5px;
+        }
+
+        .section-divider .toggle-icon {
+            font-size: 0.8rem;
+            color: #b5a39e;
+            transition: transform 0.3s ease;
+            margin-left: 0.2rem;
+        }
+
+        .section-divider .toggle-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        /* 被折叠的分组内容隐藏 */
+        .section-items {
+            display: contents;
+        }
+
+        .section-items.collapsed {
+            display: none;
+        }
+
+        /* ===== 网格卡片 ===== */
         .grid-item {
             position: relative;
             border-radius: 20px;
@@ -374,6 +442,12 @@
                 grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
                 gap: 0.8rem;
             }
+            .section-divider .label .zh {
+                font-size: 0.85rem;
+            }
+            .section-divider .label .en {
+                font-size: 0.65rem;
+            }
             .nav-btn {
                 width: 44px;
                 height: 44px;
@@ -412,7 +486,7 @@
 
     <div class="gallery-wrapper">
         <header class="gallery-header">
-            <h1>#黛机时刻 </h1>
+            <h1>#黛机时刻</h1>
             <p class="subtitle">​​Daisy’s Photo Gallery​ <span class="heart">❤️</span></p>
             <p class="hint">点击任意照片放大 · 左右滑动浏览<br><b>「Beta阶段 仅供预览」</b></p>
         </header>
@@ -440,6 +514,7 @@
                 <span class="label">分组：</span>
                 <button class="sort-btn active" data-sub="photo">Photo 在前</button>
                 <button class="sort-btn" data-sub="live">Live 在前</button>
+                <button class="sort-btn" data-sub="video">Vlog 在前</button>
             </div>
         </div>
 
@@ -484,8 +559,11 @@
 
             let swiperInstance = null;
             let currentIndex = 0;
-            let rawImages = []; // 原始数据（来自 data.json）
-            let IMAGES = []; // 当前显示的排序后数据
+            let rawImages = [];
+            let IMAGES = [];
+
+            // ===== 折叠状态存储 =====
+            const collapseState = {};
 
             // ============================================================
             // 2. 加载 data.json
@@ -500,7 +578,6 @@
                         grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#8a7773; padding:3rem 0;">暂无照片，请添加图片。</p>';
                         return;
                     }
-                    // 初始应用排序
                     applySortAndRender();
                     console.log('📸 照片墙已加载，图片数量:', rawImages.length);
                 } catch (error) {
@@ -510,146 +587,344 @@
             }
 
             // ============================================================
-            // 3. 排序与渲染
+            // 3. 获取媒体类型
+            // ============================================================
+            function getMediaType(item) {
+                // 判断是否为视频：有 video 字段且路径包含 /video/ 或 /vlog/
+                if (item.video) {
+                    const srcLower = item.src.toLowerCase();
+                    const videoLower = item.video.toLowerCase();
+                    // 如果 src 路径包含 /video/ 或 /vlog/，或者视频文件较大（普通视频），归类为 video
+                    if (srcLower.includes('/video/') || srcLower.includes('/vlog/') ||
+                        videoLower.includes('/video/') || videoLower.includes('/vlog/')) {
+                        return 'video';
+                    }
+                    // 否则归类为 live
+                    return 'live';
+                }
+                return 'photo';
+            }
+
+            // ============================================================
+            // 4. 排序与渲染
             // ============================================================
             function applySortAndRender() {
-                // 获取当前选中的模式
                 const activeMode = document.querySelector('.sort-btn[data-mode].active');
                 if (!activeMode) return;
-                const mode = activeMode.dataset.mode; // 'time' 或 'type'
+                const mode = activeMode.dataset.mode;
 
-                // 获取该模式下的子选项
                 const subContainer = mode === 'time' ? document.getElementById('timeOptions') : document.getElementById(
-                'typeOptions');
+                    'typeOptions');
                 const activeSub = subContainer.querySelector('.sort-btn[data-sub].active');
                 if (!activeSub) return;
-                const subValue = activeSub.dataset.sub; // 'old'/'new' 或 'photo'/'live'
+                const subValue = activeSub.dataset.sub;
 
                 console.log('🔀 模式:', mode, '子选项:', subValue);
 
-                // 基于原始数据排序
                 const sorted = [...rawImages];
 
                 if (mode === 'time') {
-                    // 按时间戳排序
                     sorted.sort((a, b) => {
                         const t1 = a.timestamp || 0;
                         const t2 = b.timestamp || 0;
                         return subValue === 'old' ? t1 - t2 : t2 - t1;
                     });
-                } else { // type
-                    const photos = sorted.filter(item => !item.video);
-                    const lives = sorted.filter(item => item.video);
-                    // 组内按时间升序（可固定，也可根据用户需求，但类型模式下没有方向选项，这里使用升序）
+                } else {
+                    // 类型模式：按 Photo / Live / Video 分组
+                    const photos = sorted.filter(item => getMediaType(item) === 'photo');
+                    const lives = sorted.filter(item => getMediaType(item) === 'live');
+                    const videos = sorted.filter(item => getMediaType(item) === 'video');
+
                     const sortByTime = (arr) => arr.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                     sortByTime(photos);
                     sortByTime(lives);
-                    // 合并
-                    if (subValue === 'photo') {
-                        sorted.splice(0, sorted.length, ...photos, ...lives);
-                    } else { // live
-                        sorted.splice(0, sorted.length, ...lives, ...photos);
+                    sortByTime(videos);
+
+                    const groups = { photo: photos, live: lives, video: videos };
+                    const order = ['photo', 'live', 'video'];
+
+                    // 根据 subValue 重排 order
+                    if (subValue === 'live') {
+                        order.splice(0, 0, order.splice(order.indexOf('live'), 1)[0]);
+                    } else if (subValue === 'video') {
+                        order.splice(0, 0, order.splice(order.indexOf('video'), 1)[0]);
                     }
+                    // photo 在前是默认顺序
+
+                    const result = [];
+                    order.forEach(key => {
+                        if (groups[key] && groups[key].length > 0) {
+                            result.push({ type: key, items: groups[key] });
+                        }
+                    });
+
+                    IMAGES = result;
+                    renderGridWithSections(mode, subValue);
+                    return;
                 }
 
+                // 时间轴模式：直接排序，render 时再按年份分组
                 IMAGES = sorted;
-                renderGrid();
+                renderGridWithSections(mode, subValue);
+            }
 
-                // 如果灯箱打开，关闭它（因为顺序已变）
+            // ============================================================
+            // 5. 渲染网格（带分割线）
+            // ============================================================
+            function renderGridWithSections(mode, subValue) {
+                grid.innerHTML = '';
+
+                if (mode === 'time') {
+                    // 时间轴模式：按年份分组
+                    const yearGroups = {};
+                    IMAGES.forEach(item => {
+                        const year = new Date(item.timestamp).getFullYear();
+                        if (!yearGroups[year]) yearGroups[year] = [];
+                        yearGroups[year].push(item);
+                    });
+
+                    const years = Object.keys(yearGroups).sort((a, b) => {
+                        return subValue === 'old' ? parseInt(a) - parseInt(b) : parseInt(b) - parseInt(a);
+                    });
+
+                    years.forEach((year, idx) => {
+                        const key = `year-${year}`;
+                        if (collapseState[key] === undefined) collapseState[key] = false;
+
+                        const divider = createDivider(
+                            `${year}`,
+                            '',
+                            key,
+                            collapseState[key]
+                        );
+                        grid.appendChild(divider);
+
+                        const itemsContainer = document.createElement('div');
+                        itemsContainer.className = `section-items${collapseState[key] ? ' collapsed' : ''}`;
+                        itemsContainer.dataset.sectionKey = key;
+
+                        yearGroups[year].forEach((item, index) => {
+                            const card = createCard(item, index);
+                            itemsContainer.appendChild(card);
+                        });
+
+                        grid.appendChild(itemsContainer);
+                    });
+                } else {
+                    // 类型模式：使用已分组的 IMAGES
+                    const typeLabels = {
+                        photo: { zh: '照片', en: 'Photo' },
+                        live: { zh: '实况', en: 'Live' },
+                        video: { zh: '视频', en: 'VLog' }
+                    };
+
+                    IMAGES.forEach(group => {
+                        const key = `type-${group.type}`;
+                        if (collapseState[key] === undefined) collapseState[key] = false;
+
+                        const label = typeLabels[group.type] || { zh: group.type, en: '' };
+                        const divider = createDivider(
+                            label.zh,
+                            label.en,
+                            key,
+                            collapseState[key]
+                        );
+                        grid.appendChild(divider);
+
+                        const itemsContainer = document.createElement('div');
+                        itemsContainer.className = `section-items${collapseState[key] ? ' collapsed' : ''}`;
+                        itemsContainer.dataset.sectionKey = key;
+
+                        group.items.forEach((item, index) => {
+                            const card = createCard(item, index);
+                            itemsContainer.appendChild(card);
+                        });
+
+                        grid.appendChild(itemsContainer);
+                    });
+                }
+
+                // 如果灯箱打开，关闭它
                 if (lightbox.classList.contains('active')) {
                     closeLightbox();
                 }
             }
 
             // ============================================================
-            // 4. 渲染网格
+            // 6. 创建分割线
             // ============================================================
-            function renderGrid() {
-                grid.innerHTML = '';
-                IMAGES.forEach((item, index) => {
-                    const div = document.createElement('div');
-                    div.className = 'grid-item';
-                    div.setAttribute('role', 'button');
-                    div.setAttribute('tabindex', '0');
-                    div.setAttribute('aria-label', `查看图片 ${index + 1}: ${item.alt}`);
+            function createDivider(zhText, enText, key, isCollapsed) {
+                const div = document.createElement('div');
+                div.className = 'section-divider';
+                div.dataset.sectionKey = key;
 
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'media-wrapper';
+                const labelSpan = document.createElement('span');
+                labelSpan.className = 'label';
 
-                    const img = document.createElement('img');
-                    img.src = item.src;
-                    img.alt = item.alt;
-                    img.loading = 'lazy';
-                    wrapper.appendChild(img);
+                const zhSpan = document.createElement('span');
+                zhSpan.className = 'zh';
+                zhSpan.textContent = zhText;
+                labelSpan.appendChild(zhSpan);
 
-                    if (item.video) {
-                        const video = document.createElement('video');
-                        video.src = item.video;
-                        video.muted = true;
-                        video.playsInline = true;
-                        video.loop = true;
-                        video.preload = 'metadata';
-                        video.setAttribute('aria-hidden', 'true');
-                        wrapper.appendChild(video);
+                if (enText) {
+                    const enSpan = document.createElement('span');
+                    enSpan.className = 'en';
+                    enSpan.textContent = enText;
+                    labelSpan.appendChild(enSpan);
+                }
 
-                        div.addEventListener('mouseenter', () => {
-                            video.classList.add('active');
-                            video.play().catch(() => {});
-                        });
-                        div.addEventListener('mouseleave', () => {
-                            video.classList.remove('active');
-                            video.pause();
-                            video.currentTime = 0;
-                        });
+                const iconSpan = document.createElement('span');
+                iconSpan.className = `toggle-icon${isCollapsed ? ' collapsed' : ''}`;
+                iconSpan.textContent = '▼';
 
-                        let touchTimer = null;
-                        div.addEventListener('touchstart', () => {
-                            touchTimer = setTimeout(() => {
-                                video.classList.add('active');
-                                video.play().catch(() => {});
-                            }, 300);
-                        }, { passive: true });
-                        div.addEventListener('touchend', () => {
-                            clearTimeout(touchTimer);
-                            video.classList.remove('active');
-                            video.pause();
-                            video.currentTime = 0;
-                        }, { passive: true });
-                        div.addEventListener('touchcancel', () => {
-                            clearTimeout(touchTimer);
-                            video.classList.remove('active');
-                            video.pause();
-                            video.currentTime = 0;
-                        }, { passive: true });
+                const lineSpan = document.createElement('span');
+                lineSpan.className = 'line';
+
+                div.appendChild(lineSpan);
+                div.appendChild(labelSpan);
+                div.appendChild(iconSpan);
+
+                // 点击切换折叠
+                div.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const sectionKey = this.dataset.sectionKey;
+                    collapseState[sectionKey] = !collapseState[sectionKey];
+
+                    // 切换图标方向
+                    const icon = this.querySelector('.toggle-icon');
+                    if (icon) {
+                        icon.classList.toggle('collapsed');
                     }
 
-                    div.appendChild(wrapper);
-
-                    div.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        openLightbox(index);
-                    });
-                    div.addEventListener('keydown', (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            openLightbox(index);
-                        }
-                    });
-
-                    grid.appendChild(div);
+                    // 切换内容显示
+                    const itemsContainer = grid.querySelector(`.section-items[data-section-key="${sectionKey}"]`);
+                    if (itemsContainer) {
+                        itemsContainer.classList.toggle('collapsed');
+                    }
                 });
+
+                return div;
             }
 
             // ============================================================
-            // 5. 灯箱 (Swiper)
+            // 7. 创建卡片
+            // ============================================================
+            function createCard(item, globalIndex) {
+                const div = document.createElement('div');
+                div.className = 'grid-item';
+                div.setAttribute('role', 'button');
+                div.setAttribute('tabindex', '0');
+                div.setAttribute('aria-label', `查看图片 ${globalIndex + 1}: ${item.alt}`);
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'media-wrapper';
+
+                const img = document.createElement('img');
+                img.src = item.src;
+                img.alt = item.alt;
+                img.loading = 'lazy';
+                wrapper.appendChild(img);
+
+                if (item.video) {
+                    const video = document.createElement('video');
+                    video.src = item.video;
+                    video.muted = true;
+                    video.playsInline = true;
+                    video.loop = true;
+                    video.preload = 'metadata';
+                    video.setAttribute('aria-hidden', 'true');
+                    wrapper.appendChild(video);
+
+                    div.addEventListener('mouseenter', () => {
+                        video.classList.add('active');
+                        video.play().catch(() => {});
+                    });
+                    div.addEventListener('mouseleave', () => {
+                        video.classList.remove('active');
+                        video.pause();
+                        video.currentTime = 0;
+                    });
+
+                    let touchTimer = null;
+                    div.addEventListener('touchstart', () => {
+                        touchTimer = setTimeout(() => {
+                            video.classList.add('active');
+                            video.play().catch(() => {});
+                        }, 300);
+                    }, { passive: true });
+                    div.addEventListener('touchend', () => {
+                        clearTimeout(touchTimer);
+                        video.classList.remove('active');
+                        video.pause();
+                        video.currentTime = 0;
+                    }, { passive: true });
+                    div.addEventListener('touchcancel', () => {
+                        clearTimeout(touchTimer);
+                        video.classList.remove('active');
+                        video.pause();
+                        video.currentTime = 0;
+                    }, { passive: true });
+                }
+
+                div.appendChild(wrapper);
+
+                // 点击打开灯箱 - 需要计算实际索引
+                div.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    // 计算当前卡片在全部 IMAGES 中的位置
+                    let realIndex = 0;
+                    // 在时间轴模式下，IMAGES 是扁平数组
+                    if (document.querySelector('.sort-btn[data-mode].active')?.dataset.mode === 'time') {
+                        realIndex = IMAGES.indexOf(item);
+                    } else {
+                        // 类型模式下，需要遍历所有分组找到位置
+                        let count = 0;
+                        for (const group of IMAGES) {
+                            const idx = group.items.indexOf(item);
+                            if (idx !== -1) {
+                                realIndex = count + idx;
+                                break;
+                            }
+                            count += group.items.length;
+                        }
+                    }
+                    openLightbox(realIndex);
+                });
+                div.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        div.click();
+                    }
+                });
+
+                return div;
+            }
+
+            // ============================================================
+            // 8. 灯箱 (Swiper)
             // ============================================================
             function openLightbox(index) {
-                if (!IMAGES.length) return;
-                currentIndex = Math.min(index, IMAGES.length - 1);
+                // 获取扁平化的图片数组
+                const flatImages = getFlatImages();
+                if (!flatImages.length) return;
+                currentIndex = Math.min(index, flatImages.length - 1);
                 console.log('🖱️ 打开灯箱，目标索引:', currentIndex);
-                buildSwiper(currentIndex);
+                buildSwiper(currentIndex, flatImages);
                 lightbox.classList.add('active');
                 document.body.style.overflow = 'hidden';
+            }
+
+            function getFlatImages() {
+                const mode = document.querySelector('.sort-btn[data-mode].active')?.dataset.mode;
+                if (mode === 'time') {
+                    return IMAGES;
+                } else {
+                    const result = [];
+                    IMAGES.forEach(group => {
+                        result.push(...group.items);
+                    });
+                    return result;
+                }
             }
 
             function closeLightbox() {
@@ -663,9 +938,9 @@
                 swiperWrapper.innerHTML = '';
             }
 
-            function buildSwiper(initialSlide) {
+            function buildSwiper(initialSlide, flatImages) {
                 swiperWrapper.innerHTML = '';
-                IMAGES.forEach((item) => {
+                flatImages.forEach((item) => {
                     const slide = document.createElement('div');
                     slide.className = 'swiper-slide';
                     if (item.video) {
@@ -710,7 +985,7 @@
                     on: {
                         slideChangeTransitionEnd: function() {
                             const idx = this.activeIndex;
-                            updateCounter(idx);
+                            updateCounter(idx, flatImages.length);
                             this.slides.forEach((slide, i) => {
                                 const video = slide.querySelector('video');
                                 if (video) {
@@ -724,7 +999,7 @@
                         },
                         init: function() {
                             this.navigation.update();
-                            updateCounter(this.activeIndex);
+                            updateCounter(this.activeIndex, flatImages.length);
                             const slide = this.slides[this.activeIndex];
                             if (slide) {
                                 const video = slide.querySelector('video');
@@ -737,17 +1012,17 @@
                 setTimeout(() => {
                     if (swiperInstance && swiperInstance.activeIndex !== initialSlide) {
                         swiperInstance.slideTo(initialSlide, 0);
-                        updateCounter(initialSlide);
+                        updateCounter(initialSlide, flatImages.length);
                     }
                 }, 100);
             }
 
-            function updateCounter(index) {
-                counter.textContent = `${index + 1} / ${IMAGES.length}`;
+            function updateCounter(index, total) {
+                counter.textContent = `${index + 1} / ${total}`;
             }
 
             // ============================================================
-            // 6. 键盘事件
+            // 9. 键盘事件
             // ============================================================
             document.addEventListener('keydown', (e) => {
                 if (!lightbox.classList.contains('active')) return;
@@ -768,7 +1043,7 @@
             });
 
             // ============================================================
-            // 7. UI 事件绑定
+            // 10. UI 事件绑定
             // ============================================================
             closeBtn.addEventListener('click', closeLightbox);
             lightbox.addEventListener('click', (e) => {
@@ -778,16 +1053,18 @@
             // ---- 模式切换 ----
             document.querySelectorAll('.sort-btn[data-mode]').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    // 切换模式按钮 active
                     document.querySelectorAll('.sort-btn[data-mode]').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
 
-                    // 显示对应的子选项
                     const mode = this.dataset.mode;
                     document.getElementById('timeOptions').classList.toggle('show', mode === 'time');
                     document.getElementById('typeOptions').classList.toggle('show', mode === 'type');
 
-                    // 重新排序
+                    // 重置折叠状态（切换模式时展开所有）
+                    Object.keys(collapseState).forEach(key => {
+                        collapseState[key] = false;
+                    });
+
                     applySortAndRender();
                 });
             });
@@ -795,18 +1072,21 @@
             // ---- 子选项点击 ----
             document.querySelectorAll('.sub-options .sort-btn[data-sub]').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    // 只切换当前子选项组内的 active
                     const parent = this.closest('.sub-options');
                     parent.querySelectorAll('.sort-btn[data-sub]').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
 
-                    // 重新排序
+                    // 重置折叠状态
+                    Object.keys(collapseState).forEach(key => {
+                        collapseState[key] = false;
+                    });
+
                     applySortAndRender();
                 });
             });
 
             // ============================================================
-            // 8. 启动
+            // 11. 启动
             // ============================================================
             loadImages();
         })();

@@ -1113,25 +1113,28 @@
 
                 if (mode === 'time') {
                     const unpinned = unpinnedData || [];
-                    const yearGroups = {};
+                    // --- 修改：按年-月分组 ---
+                    const yearMonthGroups = {};
                     unpinned.forEach(item => {
                         const date = new Date(item.timestamp);
-                        const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                        if (!yearGroups[year]) yearGroups[year] = [];
-                        yearGroups[year].push(item);
+                        const yearMonth = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+                        if (!yearMonthGroups[yearMonth]) yearMonthGroups[yearMonth] = [];
+                        yearMonthGroups[yearMonth].push(item);
                     });
-                    const years = Object.keys(yearGroups).sort((a, b) => {
-                        return subValue === 'old' ? parseInt(a) - parseInt(b) : parseInt(b) - parseInt(a);
+                    const yearMonths = Object.keys(yearMonthGroups).sort((a, b) => {
+                        // 按子选项排序（旧在前或新在前）
+                        return subValue === 'old' ? a.localeCompare(b) : b.localeCompare(a);
                     });
-                    years.forEach((year) => {
-                        const key = `year-${year}`;
+                    yearMonths.forEach((yearMonth) => {
+                        const key = `ym-${yearMonth}`;
                         if (collapseState[key] === undefined) collapseState[key] = false;
-                        const divider = createDivider(`${year}`, '', key, collapseState[key]);
+                        // 分割线显示为 "2023-10"
+                        const divider = createDivider(yearMonth, '', key, collapseState[key]);
                         grid.appendChild(divider);
                         const itemsContainer = document.createElement('div');
                         itemsContainer.className = `section-items${collapseState[key] ? ' collapsed' : ''}`;
                         itemsContainer.dataset.sectionKey = key;
-                        yearGroups[year].forEach(item => {
+                        yearMonthGroups[yearMonth].forEach(item => {
                             const card = createCard(item);
                             itemsContainer.appendChild(card);
                         });

@@ -1,6 +1,8 @@
-const fs = require('fs');
-const path = require('path');
-const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+// 文件顶部，替换所有的 require
+import fs from 'fs';
+import path from 'path';
+import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
+// ... 其他代码保持不变
 
 const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
 const videoExtensions = ['.mov', '.mp4', '.m4v'];

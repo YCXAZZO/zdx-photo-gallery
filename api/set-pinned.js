@@ -1,23 +1,24 @@
-// api/set-pinned.js
+import { Redis } from '@upstash/redis';
+
+// 检查环境变量
+if (!process.env.REDIS_URL) {
+  console.error('❌ REDIS_URL is not set');
+}
+
+const redis = new Redis({
+  url: process.env.REDIS_URL,
+});
+
 export default async function handler(req, res) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
-
     res.setHeader('Access-Control-Allow-Origin', '*');
-
-    const { pinned } = req.body;
-    if (!Array.isArray(pinned)) {
-        return res.status(400).json({ error: 'pinned must be an array' });
-    }
-
-    const { kv } = await import('@vercel/kv');
-
     try {
-        await kv.set('pinned', pinned);
-        res.status(200).json({ success: true });
+        const pinned = await redis.get('pinned') || [];
+        res.status(200).json({ pinned });
     } catch (error) {
-        console.error('保存置顶列表失败:', error);
-        res.status(500).json({ error: '保存失败' });
+        console.error('读取置顶列表失败:', error);
+        res.status(500).json({ 
+            error: '读取失败: ' + error.message,
+            env: process.env.REDIS_URL ? 'set' : 'missing'  // 辅助调试
+        });
     }
 }

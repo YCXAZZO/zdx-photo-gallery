@@ -445,7 +445,7 @@
             transform: translateY(-2px);
         }
 
-        /* ===== 调试按钮 & 管理面板样式 ===== */
+        /* ===== 调试按钮 ===== */
         .debug-toggle {
             position: fixed;
             bottom: 2rem;
@@ -479,7 +479,7 @@
             outline-offset: 2px;
         }
 
-        /* 遮罩层 */
+        /* ===== 遮罩层 & 模态框 ===== */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -633,7 +633,6 @@
             background: #f5ece8;
         }
 
-        /* 密码输入框 */
         .password-box {
             max-width: 360px;
         }
@@ -759,7 +758,6 @@
 
         <!-- ===== 排序控制栏 ===== -->
         <div class="sort-controls">
-            <!-- 模式切换 -->
             <div class="sort-group">
                 <span class="label">模式：</span>
                 <button class="sort-btn active" data-mode="time">时间轴</button>
@@ -768,14 +766,12 @@
 
             <span class="sort-divider"></span>
 
-            <!-- 时间轴子选项 -->
             <div class="sub-options show" id="timeOptions">
                 <span class="label">方向：</span>
                 <button class="sort-btn active" data-sub="old">旧在前</button>
                 <button class="sort-btn" data-sub="new">新在前</button>
             </div>
 
-            <!-- 类型子选项 -->
             <div class="sub-options" id="typeOptions">
                 <span class="label">分组：</span>
                 <button class="sort-btn active" data-sub="photo">Photo 在前</button>
@@ -845,6 +841,7 @@
 
     <!-- ===== 引入 Swiper ===== -->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/redis@4.6.0/dist/index.min.js"></script>
 
     <script>
         (function() {
@@ -879,18 +876,15 @@
             let currentIndex = 0;
             let rawImages = [];
             let IMAGES = [];
-
-            // 置顶列表（文件名数组）
             let pinnedFiles = [];
-
-            // 折叠状态
             const collapseState = {};
-
-            // 管理面板中的文件列表（用于拖拽排序）
             let adminFileList = [];
 
+            // 密码
+            const ADMIN_PASSWORD = 'admin123';
+
             // ============================================================
-            // 2. 加载 data.json 和 置顶列表
+            // 2. 加载数据
             // ============================================================
             async function loadImages() {
                 try {
@@ -902,7 +896,6 @@
                         grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#8a7773; padding:3rem 0;">暂无照片，请添加图片。</p>';
                         return;
                     }
-                    // 加载置顶列表
                     await fetchPinnedList();
                     applySortAndRender();
                     console.log('📸 照片墙已加载，图片数量:', rawImages.length);
@@ -925,7 +918,7 @@
             }
 
             // ============================================================
-            // 3. 获取媒体类型
+            // 3. 媒体类型
             // ============================================================
             function getMediaType(item) {
                 if (item.video) {
@@ -941,7 +934,7 @@
             }
 
             // ============================================================
-            // 4. 排序与渲染（置顶优先）
+            // 4. 排序与渲染
             // ============================================================
             function applySortAndRender() {
                 const activeMode = document.querySelector('.sort-btn[data-mode].active');
@@ -956,12 +949,10 @@
 
                 console.log('🔀 模式:', mode, '子选项:', subValue);
 
-                // 1. 分离置顶项和非置顶项
                 const pinnedItems = [];
                 const unpinnedItems = [];
 
                 rawImages.forEach(item => {
-                    // 从 src 中提取文件名（不含路径）
                     const fileName = item.src.split('/').pop();
                     if (pinnedFiles.includes(fileName)) {
                         pinnedItems.push(item);
@@ -970,14 +961,12 @@
                     }
                 });
 
-                // 置顶项按 pinnedFiles 中的顺序排序（保持用户设定的顺序）
                 pinnedItems.sort((a, b) => {
                     const aName = a.src.split('/').pop();
                     const bName = b.src.split('/').pop();
                     return pinnedFiles.indexOf(aName) - pinnedFiles.indexOf(bName);
                 });
 
-                // 2. 对非置顶项按当前模式排序
                 if (mode === 'time') {
                     unpinnedItems.sort((a, b) => {
                         const t1 = a.timestamp || 0;
@@ -985,7 +974,6 @@
                         return subValue === 'old' ? t1 - t2 : t2 - t1;
                     });
                 } else {
-                    // 类型模式
                     const photos = unpinnedItems.filter(item => getMediaType(item) === 'photo');
                     const lives = unpinnedItems.filter(item => getMediaType(item) === 'live');
                     const videos = unpinnedItems.filter(item => getMediaType(item) === 'video');
@@ -1010,9 +998,7 @@
                         }
                     });
 
-                    // 非置顶部分渲染（直接传递分组数据）
                     const unpinnedGroups = result;
-                    // 先渲染置顶（作为特殊分组）
                     if (pinnedItems.length > 0) {
                         const pinnedGroup = { type: 'pinned', items: pinnedItems };
                         renderGridWithSections(mode, subValue, pinnedGroup, unpinnedGroups);
@@ -1022,39 +1008,32 @@
                     return;
                 }
 
-                // 时间轴模式：非置顶直接作为数组
                 renderGridWithSections(mode, subValue, pinnedItems, unpinnedItems);
             }
 
             // ============================================================
-            // 5. 渲染网格（带分割线），支持置顶分组
+            // 5. 渲染网格（带分割线）
             // ============================================================
             function renderGridWithSections(mode, subValue, pinnedGroup, unpinnedData) {
                 grid.innerHTML = '';
 
-                // 统一处理置顶分组
+                // 置顶分组
                 if (pinnedGroup && pinnedGroup.length > 0) {
                     const key = 'pinned';
                     if (collapseState[key] === undefined) collapseState[key] = false;
-
                     const divider = createDivider('📌 置顶', '', key, collapseState[key]);
                     grid.appendChild(divider);
-
                     const itemsContainer = document.createElement('div');
                     itemsContainer.className = `section-items${collapseState[key] ? ' collapsed' : ''}`;
                     itemsContainer.dataset.sectionKey = key;
-
-                    pinnedGroup.forEach((item, index) => {
-                        const card = createCard(item, index);
+                    pinnedGroup.forEach(item => {
+                        const card = createCard(item);
                         itemsContainer.appendChild(card);
                     });
-
                     grid.appendChild(itemsContainer);
                 }
 
-                // 处理非置顶部分
                 if (mode === 'time') {
-                    // unpinnedData 是数组
                     const unpinned = unpinnedData || [];
                     const yearGroups = {};
                     unpinned.forEach(item => {
@@ -1062,65 +1041,43 @@
                         if (!yearGroups[year]) yearGroups[year] = [];
                         yearGroups[year].push(item);
                     });
-
                     const years = Object.keys(yearGroups).sort((a, b) => {
                         return subValue === 'old' ? parseInt(a) - parseInt(b) : parseInt(b) - parseInt(a);
                     });
-
                     years.forEach((year) => {
                         const key = `year-${year}`;
                         if (collapseState[key] === undefined) collapseState[key] = false;
-
-                        const divider = createDivider(
-                            `${year}`,
-                            '',
-                            key,
-                            collapseState[key]
-                        );
+                        const divider = createDivider(`${year}`, '', key, collapseState[key]);
                         grid.appendChild(divider);
-
                         const itemsContainer = document.createElement('div');
                         itemsContainer.className = `section-items${collapseState[key] ? ' collapsed' : ''}`;
                         itemsContainer.dataset.sectionKey = key;
-
-                        yearGroups[year].forEach((item) => {
+                        yearGroups[year].forEach(item => {
                             const card = createCard(item);
                             itemsContainer.appendChild(card);
                         });
-
                         grid.appendChild(itemsContainer);
                     });
                 } else {
-                    // 类型模式：unpinnedData 是分组数组 [{type, items}]
                     const groups = unpinnedData || [];
                     const typeLabels = {
                         photo: { zh: '照片', en: 'Photo' },
                         live: { zh: '实况', en: 'Live' },
                         video: { zh: '视频', en: 'VLog' }
                     };
-
                     groups.forEach(group => {
                         const key = `type-${group.type}`;
                         if (collapseState[key] === undefined) collapseState[key] = false;
-
                         const label = typeLabels[group.type] || { zh: group.type, en: '' };
-                        const divider = createDivider(
-                            label.zh,
-                            label.en,
-                            key,
-                            collapseState[key]
-                        );
+                        const divider = createDivider(label.zh, label.en, key, collapseState[key]);
                         grid.appendChild(divider);
-
                         const itemsContainer = document.createElement('div');
                         itemsContainer.className = `section-items${collapseState[key] ? ' collapsed' : ''}`;
                         itemsContainer.dataset.sectionKey = key;
-
-                        group.items.forEach((item) => {
+                        group.items.forEach(item => {
                             const card = createCard(item);
                             itemsContainer.appendChild(card);
                         });
-
                         grid.appendChild(itemsContainer);
                     });
                 }
@@ -1128,10 +1085,27 @@
                 if (lightbox.classList.contains('active')) {
                     closeLightbox();
                 }
+
+                // 保存扁平顺序供灯箱使用（从 DOM 提取）
+                IMAGES = [];
+                const allItems = grid.querySelectorAll('.grid-item');
+                allItems.forEach(el => {
+                    // 通过 data 属性或从 img src 查找原始数据
+                    const img = el.querySelector('img');
+                    if (img) {
+                        const src = img.src;
+                        const found = rawImages.find(item => item.src === src);
+                        if (found) IMAGES.push(found);
+                    }
+                });
+                // 如果提取失败，回退到 rawImages（但顺序可能不对）
+                if (IMAGES.length === 0) {
+                    IMAGES = [...rawImages];
+                }
             }
 
             // ============================================================
-            // 6. 创建分割线（与之前相同）
+            // 6. 创建分割线
             // ============================================================
             function createDivider(zhText, enText, key, isCollapsed) {
                 const div = document.createElement('div');
@@ -1140,12 +1114,10 @@
 
                 const labelSpan = document.createElement('span');
                 labelSpan.className = 'label';
-
                 const zhSpan = document.createElement('span');
                 zhSpan.className = 'zh';
                 zhSpan.textContent = zhText;
                 labelSpan.appendChild(zhSpan);
-
                 if (enText) {
                     const enSpan = document.createElement('span');
                     enSpan.className = 'en';
@@ -1168,23 +1140,17 @@
                     e.stopPropagation();
                     const sectionKey = this.dataset.sectionKey;
                     collapseState[sectionKey] = !collapseState[sectionKey];
-
                     const icon = this.querySelector('.toggle-icon');
-                    if (icon) {
-                        icon.classList.toggle('collapsed');
-                    }
-
+                    if (icon) icon.classList.toggle('collapsed');
                     const itemsContainer = grid.querySelector(`.section-items[data-section-key="${sectionKey}"]`);
-                    if (itemsContainer) {
-                        itemsContainer.classList.toggle('collapsed');
-                    }
+                    if (itemsContainer) itemsContainer.classList.toggle('collapsed');
                 });
 
                 return div;
             }
 
             // ============================================================
-            // 7. 创建卡片
+            // 7. 创建卡片（包含点击灯箱）
             // ============================================================
             function createCard(item) {
                 const div = document.createElement('div');
@@ -1245,13 +1211,19 @@
 
                 div.appendChild(wrapper);
 
-                // 点击打开灯箱（计算真实索引）
+                // 点击打开灯箱 - 直接调用 openLightbox
                 div.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const flatImages = getFlatImages();
-                    const idx = flatImages.indexOf(item);
+                    // 获取当前卡片在 IMAGES 中的索引
+                    const src = img.src;
+                    const idx = IMAGES.findIndex(item => item.src === src);
                     if (idx !== -1) {
                         openLightbox(idx);
+                    } else {
+                        // fallback
+                        console.warn('未找到图片索引，尝试通过 rawImages');
+                        const fallbackIdx = rawImages.findIndex(item => item.src === src);
+                        if (fallbackIdx !== -1) openLightbox(fallbackIdx);
                     }
                 });
                 div.addEventListener('keydown', (e) => {
@@ -1265,25 +1237,20 @@
             }
 
             // ============================================================
-            // 8. 灯箱 (Swiper) – 与之前相同，但需要获取扁平列表
+            // 8. 灯箱 (Swiper)
             // ============================================================
             function openLightbox(index) {
-                const flatImages = getFlatImages();
-                if (!flatImages.length) return;
-                currentIndex = Math.min(index, flatImages.length - 1);
-                console.log('🖱️ 打开灯箱，目标索引:', currentIndex);
-                buildSwiper(currentIndex, flatImages);
+                console.log('🖱️ openLightbox called, index:', index);
+                if (!IMAGES.length) {
+                    console.warn('IMAGES 为空，无法打开灯箱');
+                    return;
+                }
+                currentIndex = Math.min(index, IMAGES.length - 1);
+                console.log('当前索引:', currentIndex, '总数量:', IMAGES.length);
+                buildSwiper(currentIndex);
                 lightbox.classList.add('active');
                 document.body.style.overflow = 'hidden';
-            }
-
-            function getFlatImages() {
-                // 因为渲染时已经将置顶和非置顶合并到 grid 中，但 IMAGES 可能不一致。
-                // 为了稳定，我们从 DOM 中提取顺序？但更好的方式是从 rawImages 按当前排序逻辑生成。
-                // 这里简单返回 rawImages 的副本（但会丢失置顶顺序），因此我们重新构建一次。
-                // 由于排序逻辑复杂，我们直接在 applySortAndRender 后保存排序结果。
-                // 我们将 IMAGES 作为最终渲染的扁平数组。
-                return IMAGES;
+                updateCounter(currentIndex);
             }
 
             function closeLightbox() {
@@ -1297,9 +1264,9 @@
                 swiperWrapper.innerHTML = '';
             }
 
-            function buildSwiper(initialSlide, flatImages) {
+            function buildSwiper(initialSlide) {
                 swiperWrapper.innerHTML = '';
-                flatImages.forEach((item) => {
+                IMAGES.forEach((item) => {
                     const slide = document.createElement('div');
                     slide.className = 'swiper-slide';
                     if (item.video) {
@@ -1344,7 +1311,7 @@
                     on: {
                         slideChangeTransitionEnd: function() {
                             const idx = this.activeIndex;
-                            updateCounter(idx, flatImages.length);
+                            updateCounter(idx);
                             this.slides.forEach((slide, i) => {
                                 const video = slide.querySelector('video');
                                 if (video) {
@@ -1358,7 +1325,7 @@
                         },
                         init: function() {
                             this.navigation.update();
-                            updateCounter(this.activeIndex, flatImages.length);
+                            updateCounter(this.activeIndex);
                             const slide = this.slides[this.activeIndex];
                             if (slide) {
                                 const video = slide.querySelector('video');
@@ -1371,13 +1338,13 @@
                 setTimeout(() => {
                     if (swiperInstance && swiperInstance.activeIndex !== initialSlide) {
                         swiperInstance.slideTo(initialSlide, 0);
-                        updateCounter(initialSlide, flatImages.length);
+                        updateCounter(initialSlide);
                     }
                 }, 100);
             }
 
-            function updateCounter(index, total) {
-                counter.textContent = `${index + 1} / ${total}`;
+            function updateCounter(index) {
+                counter.textContent = `${index + 1} / ${IMAGES.length}`;
             }
 
             // ============================================================
@@ -1409,35 +1376,25 @@
                 if (e.target === lightbox) closeLightbox();
             });
 
-            // ---- 模式切换 ----
+            // 排序控制
             document.querySelectorAll('.sort-btn[data-mode]').forEach(btn => {
                 btn.addEventListener('click', function() {
                     document.querySelectorAll('.sort-btn[data-mode]').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
-
                     const mode = this.dataset.mode;
                     document.getElementById('timeOptions').classList.toggle('show', mode === 'time');
                     document.getElementById('typeOptions').classList.toggle('show', mode === 'type');
-
-                    Object.keys(collapseState).forEach(key => {
-                        collapseState[key] = false;
-                    });
-
+                    Object.keys(collapseState).forEach(key => { collapseState[key] = false; });
                     applySortAndRender();
                 });
             });
 
-            // ---- 子选项点击 ----
             document.querySelectorAll('.sub-options .sort-btn[data-sub]').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const parent = this.closest('.sub-options');
                     parent.querySelectorAll('.sort-btn[data-sub]').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
-
-                    Object.keys(collapseState).forEach(key => {
-                        collapseState[key] = false;
-                    });
-
+                    Object.keys(collapseState).forEach(key => { collapseState[key] = false; });
                     applySortAndRender();
                 });
             });
@@ -1445,10 +1402,6 @@
             // ============================================================
             // 11. 置顶管理功能
             // ============================================================
-            // 密码验证（默认密码，可改为环境变量）
-            const ADMIN_PASSWORD = 'admin123'; // 建议在 Vercel 环境变量中设置，前端硬编码仅用于演示
-
-            // 打开密码弹窗
             debugToggle.addEventListener('click', () => {
                 passwordModal.classList.add('active');
                 passwordInput.value = '';
@@ -1459,14 +1412,12 @@
             function closePasswordModal() {
                 passwordModal.classList.remove('active');
             }
-
             passwordCloseBtn.addEventListener('click', closePasswordModal);
             passwordCancelBtn.addEventListener('click', closePasswordModal);
             passwordModal.addEventListener('click', (e) => {
                 if (e.target === passwordModal) closePasswordModal();
             });
 
-            // 密码确认
             passwordConfirmBtn.addEventListener('click', handlePassword);
             passwordInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') handlePassword();
@@ -1484,20 +1435,12 @@
                 }
             }
 
-            // 打开管理面板
             async function openAdminPanel() {
-                // 加载最新置顶列表
                 await fetchPinnedList();
-                // 构建文件列表（所有 rawImages）
                 adminFileList = rawImages.map(item => {
                     const fileName = item.src.split('/').pop();
-                    return {
-                        ...item,
-                        fileName: fileName,
-                        pinned: pinnedFiles.includes(fileName)
-                    };
+                    return { ...item, fileName, pinned: pinnedFiles.includes(fileName) };
                 });
-                // 按置顶顺序排序：置顶的按 pinnedFiles 顺序，非置顶的按原始顺序（但保持稳定）
                 adminFileList.sort((a, b) => {
                     const aPinned = a.pinned;
                     const bPinned = b.pinned;
@@ -1506,9 +1449,8 @@
                     }
                     if (aPinned) return -1;
                     if (bPinned) return 1;
-                    return 0; // 保持原始顺序
+                    return 0;
                 });
-
                 renderAdminList();
                 adminModal.classList.add('active');
             }
@@ -1521,7 +1463,6 @@
                     div.draggable = true;
                     div.dataset.index = index;
 
-                    // 缩略图
                     const thumb = document.createElement('img');
                     thumb.className = 'thumbnail';
                     thumb.src = item.src;
@@ -1529,20 +1470,17 @@
                     thumb.loading = 'lazy';
                     div.appendChild(thumb);
 
-                    // 文件名
                     const nameSpan = document.createElement('span');
                     nameSpan.className = 'file-name';
                     nameSpan.textContent = item.fileName;
                     div.appendChild(nameSpan);
 
-                    // 置顶复选框
                     const check = document.createElement('input');
                     check.type = 'checkbox';
                     check.className = 'pin-check';
                     check.checked = item.pinned;
                     check.addEventListener('change', (e) => {
                         item.pinned = e.target.checked;
-                        // 如果取消置顶，从 pinnedFiles 中移除
                         if (!item.pinned) {
                             const idx = pinnedFiles.indexOf(item.fileName);
                             if (idx !== -1) pinnedFiles.splice(idx, 1);
@@ -1551,7 +1489,6 @@
                                 pinnedFiles.push(item.fileName);
                             }
                         }
-                        // 更新列表顺序（重新排序）
                         adminFileList.sort((a, b) => {
                             const aP = a.pinned;
                             const bP = b.pinned;
@@ -1566,13 +1503,11 @@
                     });
                     div.appendChild(check);
 
-                    // 拖拽手柄
                     const dragHandle = document.createElement('span');
                     dragHandle.className = 'drag-handle';
                     dragHandle.textContent = '⠿';
                     div.appendChild(dragHandle);
 
-                    // 拖拽事件
                     div.addEventListener('dragstart', (e) => {
                         e.dataTransfer.setData('text/plain', index);
                         div.style.opacity = '0.5';
@@ -1585,11 +1520,8 @@
                         const targetIndex = parseInt(div.dataset.index);
                         const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
                         if (dragIndex !== targetIndex) {
-                            // 交换位置
                             const draggedItem = adminFileList.splice(dragIndex, 1)[0];
                             adminFileList.splice(targetIndex, 0, draggedItem);
-                            // 更新索引
-                            adminFileList.forEach((item, idx) => item._tempIndex = idx);
                             renderAdminList();
                         }
                     });
@@ -1598,22 +1530,17 @@
                 });
             }
 
-            // 关闭管理面板
             function closeAdminModal() {
                 adminModal.classList.remove('active');
             }
-
             adminCloseBtn.addEventListener('click', closeAdminModal);
             adminCancelBtn.addEventListener('click', closeAdminModal);
             adminModal.addEventListener('click', (e) => {
                 if (e.target === adminModal) closeAdminModal();
             });
 
-            // 保存置顶
             adminSaveBtn.addEventListener('click', async () => {
-                // 从 adminFileList 中提取置顶文件名（按当前顺序）
                 const newPinned = adminFileList.filter(item => item.pinned).map(item => item.fileName);
-                // 保存到后端
                 try {
                     const res = await fetch('/api/set-pinned', {
                         method: 'POST',
@@ -1639,44 +1566,6 @@
             // ============================================================
             // 12. 启动
             // ============================================================
-            // 重写 applySortAndRender 以保存 IMAGES 扁平数组供灯箱使用
-            const originalApplySortAndRender = applySortAndRender;
-            applySortAndRender = function() {
-                originalApplySortAndRender();
-                // 构建扁平 IMAGES 列表（用于灯箱）
-                // 由于渲染后 DOM 中顺序即最终顺序，我们可以从 DOM 提取，但更可靠的是重新构建排序后的数组。
-                // 这里简单从 grid 中提取所有 .grid-item 的 data 属性，但为了简单，我们重新从 rawImages 按当前逻辑生成。
-                // 由于逻辑复杂，我们直接利用 renderGridWithSections 中产生的顺序，但不太方便。
-                // 我们修改 renderGridWithSections 来同时填充 IMAGES。
-                // 重新执行一次渲染并收集 IMAGES 数组。
-                // 一个简单方法是直接使用当前的排序结果：在 applySortAndRender 内部调用 render 后，我们通过 DOM 获取顺序。
-                // 但为了可靠，我们改为在 renderGridWithSections 中填充一个全局数组。
-                // 重构：将 renderGridWithSections 改为接收一个回调来收集顺序。
-                // 快速修复：每次渲染后，从 grid 中提取所有 .grid-item 的 data 项。
-                // 但因为卡片是动态生成，没有 data 属性，我们可以通过图片 src 来反向查找。
-                // 更简单：我们直接收集所有卡片的 item 对象。
-                // 修改 createCard 时记录 item，并在渲染后收集。
-                // 临时方案：由于我们时间有限，我们直接修改 renderGridWithSections 来生成扁平数组。
-                // 我们来重写 renderGridWithSections 来同时维护一个 flatOrder 数组。
-                // 由于原始代码已经在前面定义了，我们稍后替换。
-            };
-
-            // 由于我们已经定义了 renderGridWithSections，我们需要覆盖它来收集 IMAGES。
-            // 为了避免冲突，我们保留原函数，直接修改。
-            // 但是为了简便，我们在加载完成后手动构建 IMAGES。
-            // 一个简单的做法是监听 DOM 变化，但不可靠。
-            // 我们最终决定，在 applySortAndRender 最后，从 grid 的子元素中提取顺序。
-            // 在 createCard 时，我们为每个卡片添加一个自定义属性 data-src，然后提取。
-            // 但我们的 createCard 已定义，我们稍后修改。
-            // 由于时间关系，我将在最终代码中统一处理好。
-
-            // 实际部署时，请使用下面修改后的版本（已经包含完整的置顶功能）。
-            // 为了简洁，本代码已包含所有功能，但需要注意上面 applySortAndRender 的覆盖问题。
-            // 实际运行时，将上面的 applySortAndRender 和 renderGridWithSections 替换为下面新版本。
-            // 这里我给出最终版本的完整脚本替换。
-
-            // 由于篇幅，我将最终完整的脚本放在最后。
-            // 现在启动。
             loadImages();
         })();
     </script>

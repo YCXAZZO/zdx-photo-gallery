@@ -1,4 +1,10 @@
-import { kv } from '@vercel/kv';
+import { createClient } from 'redis';
+
+const redis = createClient({
+  url: process.env.REDIS_URL,
+});
+
+await redis.connect();
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -18,7 +24,8 @@ export default async function handler(req, res) {
     }
 
     try {
-        await kv.set('pinned', pinned);
+        // 存储为 JSON 字符串
+        await redis.set('pinned', JSON.stringify(pinned));
         res.status(200).json({ success: true });
     } catch (error) {
         console.error('保存置顶列表失败:', error);

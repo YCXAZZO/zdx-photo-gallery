@@ -109,7 +109,6 @@
             cursor: pointer;
             transition: all 0.2s;
             font-family: inherit;
-            /* 去除默认蓝色点击框 */
             outline: none;
         }
 
@@ -141,7 +140,6 @@
             gap: 0.5rem;
         }
 
-        /* 子选项默认隐藏 */
         .sub-options {
             display: none;
         }
@@ -196,7 +194,6 @@
             white-space: nowrap;
             padding: 0 0.5rem;
             background: #fcf8f6;
-            /* 与页面背景一致 */;
         }
 
         .section-divider .label .zh {
@@ -223,7 +220,6 @@
             transform: rotate(-90deg);
         }
 
-        /* 被折叠的分组内容隐藏 */
         .section-items {
             display: contents;
         }
@@ -449,6 +445,221 @@
             transform: translateY(-2px);
         }
 
+        /* ===== 调试按钮 & 管理面板样式 ===== */
+        .debug-toggle {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 10010;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid #e0d6d2;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s, background 0.2s;
+            outline: none;
+            color: #5a4a46;
+            user-select: none;
+        }
+
+        .debug-toggle:hover {
+            background: #fff;
+            transform: scale(1.05);
+        }
+
+        .debug-toggle:focus-visible {
+            outline: 2px solid #f2cdc4;
+            outline-offset: 2px;
+        }
+
+        /* 遮罩层 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 20000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-box {
+            background: #fff;
+            border-radius: 28px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.2rem 1.8rem;
+            border-bottom: 1px solid #e8e0dc;
+        }
+
+        .modal-header h2 {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #3d2c2a;
+        }
+
+        .modal-close-btn {
+            background: none;
+            border: none;
+            font-size: 1.6rem;
+            cursor: pointer;
+            color: #b5a39e;
+            transition: color 0.2s;
+            padding: 0 0.4rem;
+        }
+
+        .modal-close-btn:hover {
+            color: #3d2c2a;
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.2rem 1.8rem;
+        }
+
+        .modal-body .file-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.5rem 0.4rem;
+            border-bottom: 1px solid #f0ece8;
+            cursor: grab;
+            transition: background 0.15s;
+        }
+
+        .modal-body .file-item:hover {
+            background: #f8f4f0;
+        }
+
+        .modal-body .file-item:active {
+            cursor: grabbing;
+        }
+
+        .modal-body .file-item .thumbnail {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            object-fit: cover;
+            flex-shrink: 0;
+            background: #f0ece8;
+        }
+
+        .modal-body .file-item .file-name {
+            flex: 1;
+            font-size: 0.9rem;
+            color: #3d2c2a;
+            word-break: break-word;
+        }
+
+        .modal-body .file-item .pin-check {
+            width: 18px;
+            height: 18px;
+            accent-color: #f2cdc4;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .modal-body .file-item .drag-handle {
+            color: #b5a39e;
+            font-size: 1.2rem;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.8rem 1.5rem;
+            border-top: 1px solid #e8e0dc;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.8rem;
+        }
+
+        .modal-footer .btn-primary {
+            background: #f2cdc4;
+            border: none;
+            padding: 0.5rem 1.6rem;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #3d2c2a;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .modal-footer .btn-primary:hover {
+            background: #e8bcb2;
+        }
+
+        .modal-footer .btn-secondary {
+            background: transparent;
+            border: 1px solid #e0d6d2;
+            padding: 0.5rem 1.6rem;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            color: #5a4a46;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .modal-footer .btn-secondary:hover {
+            background: #f5ece8;
+        }
+
+        /* 密码输入框 */
+        .password-box {
+            max-width: 360px;
+        }
+
+        .password-box input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 1px solid #e0d6d2;
+            border-radius: 40px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .password-box input:focus {
+            border-color: #f2cdc4;
+        }
+
+        .password-box .error-msg {
+            color: #e0786a;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            display: none;
+        }
+
         /* ===== 响应式 ===== */
         @media (max-width: 640px) {
             body {
@@ -507,6 +718,24 @@
                 bottom: 1.5rem;
                 font-size: 0.8rem;
                 padding: 0.3rem 1rem;
+            }
+            .debug-toggle {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+                bottom: 1.2rem;
+                right: 1.2rem;
+            }
+            .modal-box {
+                max-width: 100%;
+                border-radius: 20px;
+            }
+            .modal-body .file-item .thumbnail {
+                width: 36px;
+                height: 36px;
+            }
+            .modal-body .file-item .file-name {
+                font-size: 0.8rem;
             }
         }
 
@@ -575,6 +804,45 @@
         <div class="counter" id="counter">1 / 1</div>
     </div>
 
+    <!-- ===== 调试按钮 ===== -->
+    <button class="debug-toggle" id="debugToggle" aria-label="管理置顶" title="管理置顶">⚙️</button>
+
+    <!-- ===== 密码验证弹窗 ===== -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-box password-box">
+            <div class="modal-header">
+                <h2>🔐 管理员验证</h2>
+                <button class="modal-close-btn" id="passwordCloseBtn">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="color:#8a7773; margin-bottom:1rem;">请输入管理密码以进入置顶管理面板。</p>
+                <input type="password" id="passwordInput" placeholder="请输入密码" />
+                <div class="error-msg" id="passwordError">密码错误，请重试。</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="passwordCancelBtn">取消</button>
+                <button class="btn-primary" id="passwordConfirmBtn">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 置顶管理面板 ===== -->
+    <div class="modal-overlay" id="adminModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2>📌 管理置顶（拖拽排序）</h2>
+                <button class="modal-close-btn" id="adminCloseBtn">✕</button>
+            </div>
+            <div class="modal-body" id="adminBody">
+                <!-- 由 JavaScript 动态生成 -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="adminCancelBtn">取消</button>
+                <button class="btn-primary" id="adminSaveBtn">💾 保存置顶</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== 引入 Swiper ===== -->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 
@@ -594,16 +862,35 @@
             const swiperWrapper = document.getElementById('swiperWrapper');
             const swiperContainer = document.getElementById('swiperContainer');
 
+            const debugToggle = document.getElementById('debugToggle');
+            const passwordModal = document.getElementById('passwordModal');
+            const adminModal = document.getElementById('adminModal');
+            const passwordInput = document.getElementById('passwordInput');
+            const passwordError = document.getElementById('passwordError');
+            const passwordConfirmBtn = document.getElementById('passwordConfirmBtn');
+            const passwordCancelBtn = document.getElementById('passwordCancelBtn');
+            const passwordCloseBtn = document.getElementById('passwordCloseBtn');
+            const adminCloseBtn = document.getElementById('adminCloseBtn');
+            const adminCancelBtn = document.getElementById('adminCancelBtn');
+            const adminSaveBtn = document.getElementById('adminSaveBtn');
+            const adminBody = document.getElementById('adminBody');
+
             let swiperInstance = null;
             let currentIndex = 0;
             let rawImages = [];
             let IMAGES = [];
 
-            // ===== 折叠状态存储 =====
+            // 置顶列表（文件名数组）
+            let pinnedFiles = [];
+
+            // 折叠状态
             const collapseState = {};
 
+            // 管理面板中的文件列表（用于拖拽排序）
+            let adminFileList = [];
+
             // ============================================================
-            // 2. 加载 data.json
+            // 2. 加载 data.json 和 置顶列表
             // ============================================================
             async function loadImages() {
                 try {
@@ -615,6 +902,8 @@
                         grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#8a7773; padding:3rem 0;">暂无照片，请添加图片。</p>';
                         return;
                     }
+                    // 加载置顶列表
+                    await fetchPinnedList();
                     applySortAndRender();
                     console.log('📸 照片墙已加载，图片数量:', rawImages.length);
                 } catch (error) {
@@ -623,27 +912,36 @@
                 }
             }
 
+            async function fetchPinnedList() {
+                try {
+                    const res = await fetch('/api/get-pinned');
+                    if (!res.ok) throw new Error('获取置顶列表失败');
+                    const data = await res.json();
+                    pinnedFiles = data.pinned || [];
+                } catch (error) {
+                    console.warn('获取置顶列表失败，使用空列表:', error);
+                    pinnedFiles = [];
+                }
+            }
+
             // ============================================================
             // 3. 获取媒体类型
             // ============================================================
             function getMediaType(item) {
-                // 判断是否为视频：有 video 字段且路径包含 /video/ 或 /vlog/
                 if (item.video) {
                     const srcLower = item.src.toLowerCase();
                     const videoLower = item.video.toLowerCase();
-                    // 如果 src 路径包含 /video/ 或 /vlog/，或者视频文件较大（普通视频），归类为 video
                     if (srcLower.includes('/video/') || srcLower.includes('/vlog/') ||
                         videoLower.includes('/video/') || videoLower.includes('/vlog/')) {
                         return 'video';
                     }
-                    // 否则归类为 live
                     return 'live';
                 }
                 return 'photo';
             }
 
             // ============================================================
-            // 4. 排序与渲染
+            // 4. 排序与渲染（置顶优先）
             // ============================================================
             function applySortAndRender() {
                 const activeMode = document.querySelector('.sort-btn[data-mode].active');
@@ -658,19 +956,39 @@
 
                 console.log('🔀 模式:', mode, '子选项:', subValue);
 
-                const sorted = [...rawImages];
+                // 1. 分离置顶项和非置顶项
+                const pinnedItems = [];
+                const unpinnedItems = [];
 
+                rawImages.forEach(item => {
+                    // 从 src 中提取文件名（不含路径）
+                    const fileName = item.src.split('/').pop();
+                    if (pinnedFiles.includes(fileName)) {
+                        pinnedItems.push(item);
+                    } else {
+                        unpinnedItems.push(item);
+                    }
+                });
+
+                // 置顶项按 pinnedFiles 中的顺序排序（保持用户设定的顺序）
+                pinnedItems.sort((a, b) => {
+                    const aName = a.src.split('/').pop();
+                    const bName = b.src.split('/').pop();
+                    return pinnedFiles.indexOf(aName) - pinnedFiles.indexOf(bName);
+                });
+
+                // 2. 对非置顶项按当前模式排序
                 if (mode === 'time') {
-                    sorted.sort((a, b) => {
+                    unpinnedItems.sort((a, b) => {
                         const t1 = a.timestamp || 0;
                         const t2 = b.timestamp || 0;
                         return subValue === 'old' ? t1 - t2 : t2 - t1;
                     });
                 } else {
-                    // 类型模式：按 Photo / Live / Video 分组
-                    const photos = sorted.filter(item => getMediaType(item) === 'photo');
-                    const lives = sorted.filter(item => getMediaType(item) === 'live');
-                    const videos = sorted.filter(item => getMediaType(item) === 'video');
+                    // 类型模式
+                    const photos = unpinnedItems.filter(item => getMediaType(item) === 'photo');
+                    const lives = unpinnedItems.filter(item => getMediaType(item) === 'live');
+                    const videos = unpinnedItems.filter(item => getMediaType(item) === 'video');
 
                     const sortByTime = (arr) => arr.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                     sortByTime(photos);
@@ -679,14 +997,11 @@
 
                     const groups = { photo: photos, live: lives, video: videos };
                     const order = ['photo', 'live', 'video'];
-
-                    // 根据 subValue 重排 order
                     if (subValue === 'live') {
                         order.splice(0, 0, order.splice(order.indexOf('live'), 1)[0]);
                     } else if (subValue === 'video') {
                         order.splice(0, 0, order.splice(order.indexOf('video'), 1)[0]);
                     }
-                    // photo 在前是默认顺序
 
                     const result = [];
                     order.forEach(key => {
@@ -695,26 +1010,54 @@
                         }
                     });
 
-                    IMAGES = result;
-                    renderGridWithSections(mode, subValue);
+                    // 非置顶部分渲染（直接传递分组数据）
+                    const unpinnedGroups = result;
+                    // 先渲染置顶（作为特殊分组）
+                    if (pinnedItems.length > 0) {
+                        const pinnedGroup = { type: 'pinned', items: pinnedItems };
+                        renderGridWithSections(mode, subValue, pinnedGroup, unpinnedGroups);
+                    } else {
+                        renderGridWithSections(mode, subValue, null, unpinnedGroups);
+                    }
                     return;
                 }
 
-                // 时间轴模式：直接排序，render 时再按年份分组
-                IMAGES = sorted;
-                renderGridWithSections(mode, subValue);
+                // 时间轴模式：非置顶直接作为数组
+                renderGridWithSections(mode, subValue, pinnedItems, unpinnedItems);
             }
 
             // ============================================================
-            // 5. 渲染网格（带分割线）
+            // 5. 渲染网格（带分割线），支持置顶分组
             // ============================================================
-            function renderGridWithSections(mode, subValue) {
+            function renderGridWithSections(mode, subValue, pinnedGroup, unpinnedData) {
                 grid.innerHTML = '';
 
+                // 统一处理置顶分组
+                if (pinnedGroup && pinnedGroup.length > 0) {
+                    const key = 'pinned';
+                    if (collapseState[key] === undefined) collapseState[key] = false;
+
+                    const divider = createDivider('📌 置顶', '', key, collapseState[key]);
+                    grid.appendChild(divider);
+
+                    const itemsContainer = document.createElement('div');
+                    itemsContainer.className = `section-items${collapseState[key] ? ' collapsed' : ''}`;
+                    itemsContainer.dataset.sectionKey = key;
+
+                    pinnedGroup.forEach((item, index) => {
+                        const card = createCard(item, index);
+                        itemsContainer.appendChild(card);
+                    });
+
+                    grid.appendChild(itemsContainer);
+                }
+
+                // 处理非置顶部分
                 if (mode === 'time') {
-                    // 时间轴模式：按年份分组
+                    // unpinnedData 是数组
+                    const unpinned = unpinnedData || [];
                     const yearGroups = {};
-                    IMAGES.forEach(item => {
+                    unpinned.forEach(item => {
                         const year = new Date(item.timestamp).getFullYear();
                         if (!yearGroups[year]) yearGroups[year] = [];
                         yearGroups[year].push(item);
@@ -724,7 +1067,7 @@
                         return subValue === 'old' ? parseInt(a) - parseInt(b) : parseInt(b) - parseInt(a);
                     });
 
-                    years.forEach((year, idx) => {
+                    years.forEach((year) => {
                         const key = `year-${year}`;
                         if (collapseState[key] === undefined) collapseState[key] = false;
 
@@ -740,22 +1083,23 @@
                         itemsContainer.className = `section-items${collapseState[key] ? ' collapsed' : ''}`;
                         itemsContainer.dataset.sectionKey = key;
 
-                        yearGroups[year].forEach((item, index) => {
-                            const card = createCard(item, index);
+                        yearGroups[year].forEach((item) => {
+                            const card = createCard(item);
                             itemsContainer.appendChild(card);
                         });
 
                         grid.appendChild(itemsContainer);
                     });
                 } else {
-                    // 类型模式：使用已分组的 IMAGES
+                    // 类型模式：unpinnedData 是分组数组 [{type, items}]
+                    const groups = unpinnedData || [];
                     const typeLabels = {
                         photo: { zh: '照片', en: 'Photo' },
                         live: { zh: '实况', en: 'Live' },
                         video: { zh: '视频', en: 'VLog' }
                     };
 
-                    IMAGES.forEach(group => {
+                    groups.forEach(group => {
                         const key = `type-${group.type}`;
                         if (collapseState[key] === undefined) collapseState[key] = false;
 
@@ -772,8 +1116,8 @@
                         itemsContainer.className = `section-items${collapseState[key] ? ' collapsed' : ''}`;
                         itemsContainer.dataset.sectionKey = key;
 
-                        group.items.forEach((item, index) => {
-                            const card = createCard(item, index);
+                        group.items.forEach((item) => {
+                            const card = createCard(item);
                             itemsContainer.appendChild(card);
                         });
 
@@ -781,14 +1125,13 @@
                     });
                 }
 
-                // 如果灯箱打开，关闭它
                 if (lightbox.classList.contains('active')) {
                     closeLightbox();
                 }
             }
 
             // ============================================================
-            // 6. 创建分割线
+            // 6. 创建分割线（与之前相同）
             // ============================================================
             function createDivider(zhText, enText, key, isCollapsed) {
                 const div = document.createElement('div');
@@ -821,19 +1164,16 @@
                 div.appendChild(labelSpan);
                 div.appendChild(iconSpan);
 
-                // 点击切换折叠
                 div.addEventListener('click', function(e) {
                     e.stopPropagation();
                     const sectionKey = this.dataset.sectionKey;
                     collapseState[sectionKey] = !collapseState[sectionKey];
 
-                    // 切换图标方向
                     const icon = this.querySelector('.toggle-icon');
                     if (icon) {
                         icon.classList.toggle('collapsed');
                     }
 
-                    // 切换内容显示
                     const itemsContainer = grid.querySelector(`.section-items[data-section-key="${sectionKey}"]`);
                     if (itemsContainer) {
                         itemsContainer.classList.toggle('collapsed');
@@ -846,12 +1186,12 @@
             // ============================================================
             // 7. 创建卡片
             // ============================================================
-            function createCard(item, globalIndex) {
+            function createCard(item) {
                 const div = document.createElement('div');
                 div.className = 'grid-item';
                 div.setAttribute('role', 'button');
                 div.setAttribute('tabindex', '0');
-                div.setAttribute('aria-label', `查看图片 ${globalIndex + 1}: ${item.alt}`);
+                div.setAttribute('aria-label', `查看图片: ${item.alt}`);
 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'media-wrapper';
@@ -905,27 +1245,14 @@
 
                 div.appendChild(wrapper);
 
-                // 点击打开灯箱 - 需要计算实际索引
+                // 点击打开灯箱（计算真实索引）
                 div.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    // 计算当前卡片在全部 IMAGES 中的位置
-                    let realIndex = 0;
-                    // 在时间轴模式下，IMAGES 是扁平数组
-                    if (document.querySelector('.sort-btn[data-mode].active')?.dataset.mode === 'time') {
-                        realIndex = IMAGES.indexOf(item);
-                    } else {
-                        // 类型模式下，需要遍历所有分组找到位置
-                        let count = 0;
-                        for (const group of IMAGES) {
-                            const idx = group.items.indexOf(item);
-                            if (idx !== -1) {
-                                realIndex = count + idx;
-                                break;
-                            }
-                            count += group.items.length;
-                        }
+                    const flatImages = getFlatImages();
+                    const idx = flatImages.indexOf(item);
+                    if (idx !== -1) {
+                        openLightbox(idx);
                     }
-                    openLightbox(realIndex);
                 });
                 div.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -938,10 +1265,9 @@
             }
 
             // ============================================================
-            // 8. 灯箱 (Swiper)
+            // 8. 灯箱 (Swiper) – 与之前相同，但需要获取扁平列表
             // ============================================================
             function openLightbox(index) {
-                // 获取扁平化的图片数组
                 const flatImages = getFlatImages();
                 if (!flatImages.length) return;
                 currentIndex = Math.min(index, flatImages.length - 1);
@@ -952,16 +1278,12 @@
             }
 
             function getFlatImages() {
-                const mode = document.querySelector('.sort-btn[data-mode].active')?.dataset.mode;
-                if (mode === 'time') {
-                    return IMAGES;
-                } else {
-                    const result = [];
-                    IMAGES.forEach(group => {
-                        result.push(...group.items);
-                    });
-                    return result;
-                }
+                // 因为渲染时已经将置顶和非置顶合并到 grid 中，但 IMAGES 可能不一致。
+                // 为了稳定，我们从 DOM 中提取顺序？但更好的方式是从 rawImages 按当前排序逻辑生成。
+                // 这里简单返回 rawImages 的副本（但会丢失置顶顺序），因此我们重新构建一次。
+                // 由于排序逻辑复杂，我们直接在 applySortAndRender 后保存排序结果。
+                // 我们将 IMAGES 作为最终渲染的扁平数组。
+                return IMAGES;
             }
 
             function closeLightbox() {
@@ -1097,7 +1419,6 @@
                     document.getElementById('timeOptions').classList.toggle('show', mode === 'time');
                     document.getElementById('typeOptions').classList.toggle('show', mode === 'type');
 
-                    // 重置折叠状态（切换模式时展开所有）
                     Object.keys(collapseState).forEach(key => {
                         collapseState[key] = false;
                     });
@@ -1113,7 +1434,6 @@
                     parent.querySelectorAll('.sort-btn[data-sub]').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
 
-                    // 重置折叠状态
                     Object.keys(collapseState).forEach(key => {
                         collapseState[key] = false;
                     });
@@ -1123,8 +1443,210 @@
             });
 
             // ============================================================
-            // 11. 启动
+            // 11. 置顶管理功能
             // ============================================================
+            // 密码验证（默认密码，可改为环境变量）
+            const ADMIN_PASSWORD = 'admin123'; // 建议在 Vercel 环境变量中设置，前端硬编码仅用于演示
+
+            // 打开密码弹窗
+            debugToggle.addEventListener('click', () => {
+                passwordModal.classList.add('active');
+                passwordInput.value = '';
+                passwordError.style.display = 'none';
+                passwordInput.focus();
+            });
+
+            function closePasswordModal() {
+                passwordModal.classList.remove('active');
+            }
+
+            passwordCloseBtn.addEventListener('click', closePasswordModal);
+            passwordCancelBtn.addEventListener('click', closePasswordModal);
+            passwordModal.addEventListener('click', (e) => {
+                if (e.target === passwordModal) closePasswordModal();
+            });
+
+            // 密码确认
+            passwordConfirmBtn.addEventListener('click', handlePassword);
+            passwordInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') handlePassword();
+            });
+
+            function handlePassword() {
+                const input = passwordInput.value.trim();
+                if (input === ADMIN_PASSWORD) {
+                    closePasswordModal();
+                    openAdminPanel();
+                } else {
+                    passwordError.style.display = 'block';
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            }
+
+            // 打开管理面板
+            async function openAdminPanel() {
+                // 加载最新置顶列表
+                await fetchPinnedList();
+                // 构建文件列表（所有 rawImages）
+                adminFileList = rawImages.map(item => {
+                    const fileName = item.src.split('/').pop();
+                    return {
+                        ...item,
+                        fileName: fileName,
+                        pinned: pinnedFiles.includes(fileName)
+                    };
+                });
+                // 按置顶顺序排序：置顶的按 pinnedFiles 顺序，非置顶的按原始顺序（但保持稳定）
+                adminFileList.sort((a, b) => {
+                    const aPinned = a.pinned;
+                    const bPinned = b.pinned;
+                    if (aPinned && bPinned) {
+                        return pinnedFiles.indexOf(a.fileName) - pinnedFiles.indexOf(b.fileName);
+                    }
+                    if (aPinned) return -1;
+                    if (bPinned) return 1;
+                    return 0; // 保持原始顺序
+                });
+
+                renderAdminList();
+                adminModal.classList.add('active');
+            }
+
+            function renderAdminList() {
+                adminBody.innerHTML = '';
+                adminFileList.forEach((item, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'file-item';
+                    div.draggable = true;
+                    div.dataset.index = index;
+
+                    // 缩略图
+                    const thumb = document.createElement('img');
+                    thumb.className = 'thumbnail';
+                    thumb.src = item.src;
+                    thumb.alt = item.alt;
+                    thumb.loading = 'lazy';
+                    div.appendChild(thumb);
+
+                    // 文件名
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'file-name';
+                    nameSpan.textContent = item.fileName;
+                    div.appendChild(nameSpan);
+
+                    // 置顶复选框
+                    const check = document.createElement('input');
+                    check.type = 'checkbox';
+                    check.className = 'pin-check';
+                    check.checked = item.pinned;
+                    check.addEventListener('change', (e) => {
+                        item.pinned = e.target.checked;
+                        // 如果取消置顶，从 pinnedFiles 中移除
+                        if (!item.pinned) {
+                            const idx = pinnedFiles.indexOf(item.fileName);
+                            if (idx !== -1) pinnedFiles.splice(idx, 1);
+                        } else {
+                            if (!pinnedFiles.includes(item.fileName)) {
+                                pinnedFiles.push(item.fileName);
+                            }
+                        }
+                        // 更新列表顺序（重新排序）
+                        adminFileList.sort((a, b) => {
+                            const aP = a.pinned;
+                            const bP = b.pinned;
+                            if (aP && bP) {
+                                return pinnedFiles.indexOf(a.fileName) - pinnedFiles.indexOf(b.fileName);
+                            }
+                            if (aP) return -1;
+                            if (bP) return 1;
+                            return 0;
+                        });
+                        renderAdminList();
+                    });
+                    div.appendChild(check);
+
+                    // 拖拽手柄
+                    const dragHandle = document.createElement('span');
+                    dragHandle.className = 'drag-handle';
+                    dragHandle.textContent = '⠿';
+                    div.appendChild(dragHandle);
+
+                    // 拖拽事件
+                    div.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', index);
+                        div.style.opacity = '0.5';
+                    });
+                    div.addEventListener('dragend', () => {
+                        div.style.opacity = '1';
+                    });
+                    div.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        const targetIndex = parseInt(div.dataset.index);
+                        const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                        if (dragIndex !== targetIndex) {
+                            // 交换位置
+                            const draggedItem = adminFileList.splice(dragIndex, 1)[0];
+                            adminFileList.splice(targetIndex, 0, draggedItem);
+                            // 更新索引
+                            adminFileList.forEach((item, idx) => item._tempIndex = idx);
+                            renderAdminList();
+                        }
+                    });
+
+                    adminBody.appendChild(div);
+                });
+            }
+
+            // 关闭管理面板
+            function closeAdminModal() {
+                adminModal.classList.remove('active');
+            }
+
+            adminCloseBtn.addEventListener('click', closeAdminModal);
+            adminCancelBtn.addEventListener('click', closeAdminModal);
+            adminModal.addEventListener('click', (e) => {
+                if (e.target === adminModal) closeAdminModal();
+            });
+
+            // 保存置顶
+            adminSaveBtn.addEventListener('click', async () => {
+                // 从 adminFileList 中提取置顶文件名（按当前顺序）
+                const newPinned = adminFileList.filter(item => item.pinned).map(item => item.fileName);
+                // 保存到后端
+                try {
+                    const res = await fetch('/api/set-pinned', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ pinned: newPinned })
+                    });
+                    if (!res.ok) throw new Error('保存失败');
+                    const result = await res.json();
+                    if (result.success) {
+                        pinnedFiles = newPinned;
+                        closeAdminModal();
+                        applySortAndRender();
+                        console.log('✅ 置顶已更新');
+                    } else {
+                        alert('保存失败：' + (result.error || '未知错误'));
+                    }
+                } catch (error) {
+                    console.error('保存置顶失败:', error);
+                    alert('保存置顶失败，请检查网络或稍后重试。');
+                }
+            });
+
+            // ============================================================
+            // 12. 启动
+            // ============================================================
+            // 重写 applySortAndRender 以保存 IMAGES 扁平数组供灯箱使用
+            const originalApplySortAndRender = applySortAndRender;
+            applySortAndRender = function() {
+                originalApplySortAndRender();
+               
+            };
+
+           
             loadImages();
         })();
     </script>

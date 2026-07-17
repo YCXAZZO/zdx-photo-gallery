@@ -56,7 +56,6 @@ async function listAllObjects() {
 
 // ===== 从文件名中提取 YY-MM-DD，返回时间戳 =====
 function getTimestampFromFileName(fileName) {
-    // 匹配形如 photo-23-10-01-01.jpg, live-24-07-17-01.mp4 等
     const match = fileName.match(/(\d{2})-(\d{2})-(\d{2})/);
     if (match) {
         const year = 2000 + parseInt(match[1]);
@@ -64,7 +63,7 @@ function getTimestampFromFileName(fileName) {
         const day = parseInt(match[3]);
         return new Date(year, month, day).getTime();
     }
-    return null; // 无法解析
+    return null;
 }
 
 async function main() {
@@ -99,7 +98,9 @@ async function main() {
     console.log(`📸 找到图片 ${imageObjects.length} 个，视频 ${videoObjects.length} 个`);
 
     const imageList = [];
+    const usedVideoKeys = new Set(); // 记录已被配对的视频
 
+    // 处理图片（含 Live Photo）
     imageObjects.forEach(imgObj => {
         const imgKey = imgObj.Key;
         const baseName = path.basename(imgKey, path.extname(imgKey));
@@ -108,11 +109,9 @@ async function main() {
             return vBase === baseName;
         });
 
-        // ===== 从文件名获取时间戳 =====
         const fileName = path.basename(imgKey);
         let timestamp = getTimestampFromFileName(fileName);
         if (timestamp === null) {
-            // 解析失败时回退到 LastModified
             timestamp = imgObj.LastModified.getTime();
             console.warn(`⚠️ 无法从文件名 "${fileName}" 解析日期，回退到 LastModified`);
         }
@@ -124,11 +123,33 @@ async function main() {
         };
         if (matchedVideo) {
             item.video = `${R2_PUBLIC_URL}/${matchedVideo.Key}`;
+            usedVideoKeys.add(matchedVideo.Key);
         }
         imageList.push(item);
     });
 
-    // 按时间排序（默认升序，可通过环境变量 SORT_ORDER 调整）
+    // 处理未被配对的视频（纯视频文件）
+    videoObjects.forEach(vObj => {
+        if (usedVideoKeys.has(vObj.Key)) return; // 已配对的跳过
+        const vKey = vObj.Key;
+        const baseName = path.basename(vKey, path.extname(vKey));
+        const fileName = path.basename(vKey);
+        let timestamp = getTimestampFromFileName(fileName);
+        if (timestamp === null) {
+            timestamp = vObj.LastModified.getTime();
+            console.warn(`⚠️ 无法从文件名 "${fileName}" 解析日期，回退到 LastModified`);
+        }
+        const url = `${R2_PUBLIC_URL}/${vKey}`;
+        imageList.push({
+            src: url,                     // 用于灯箱和备用
+            video: url,                   // 实际视频源
+            alt: `黛溪 · ${baseName}`,
+            timestamp: timestamp,
+            isVideoOnly: true,            // 标记纯视频
+        });
+    });
+
+    // 按时间排序
     if (SORT_ORDER.toLowerCase() === 'desc') {
         imageList.sort((a, b) => b.timestamp - a.timestamp);
         console.log('⏱️ 排序方向：最新在前 (desc)');
@@ -137,9 +158,8 @@ async function main() {
         console.log('⏱️ 排序方向：最早在前 (asc)');
     }
 
-    // 直接输出 imageList（保留 timestamp）
     fs.writeFileSync('data.json', JSON.stringify(imageList, null, 2), 'utf-8');
-    console.log(`✅ 已生成 data.json，共 ${imageList.length} 张图片（含 Live Photo）`);
+    console.log(`✅ 已生成 data.json，共 ${imageList.length} 个条目（含纯视频）`);
 }
 
 main().catch(err => {

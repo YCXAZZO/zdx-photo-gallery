@@ -1,6 +1,7 @@
 {
   "name": "daisy-photo-wall",
   "version": "1.0.0",
+  "type": "module",
   "description": "Daisy's photo gallery with R2 storage and auto-generated manifest",
   "scripts": {
     "build": "node build.js"

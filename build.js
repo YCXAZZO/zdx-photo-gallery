@@ -1,8 +1,6 @@
-// 文件顶部，替换所有的 require
 import fs from 'fs';
 import path from 'path';
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
-// ... 其他代码保持不变
 
 const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
 const videoExtensions = ['.mov', '.mp4', '.m4v'];
@@ -56,6 +54,19 @@ async function listAllObjects() {
     return objects;
 }
 
+// ===== 从文件名中提取 YY-MM-DD，返回时间戳 =====
+function getTimestampFromFileName(fileName) {
+    // 匹配形如 photo-23-10-01-01.jpg, live-24-07-17-01.mp4 等
+    const match = fileName.match(/(\d{2})-(\d{2})-(\d{2})/);
+    if (match) {
+        const year = 2000 + parseInt(match[1]);
+        const month = parseInt(match[2]) - 1;
+        const day = parseInt(match[3]);
+        return new Date(year, month, day).getTime();
+    }
+    return null; // 无法解析
+}
+
 async function main() {
     console.log('📡 正在从 R2 获取文件列表...');
     let objects = [];
@@ -97,10 +108,19 @@ async function main() {
             return vBase === baseName;
         });
 
+        // ===== 从文件名获取时间戳 =====
+        const fileName = path.basename(imgKey);
+        let timestamp = getTimestampFromFileName(fileName);
+        if (timestamp === null) {
+            // 解析失败时回退到 LastModified
+            timestamp = imgObj.LastModified.getTime();
+            console.warn(`⚠️ 无法从文件名 "${fileName}" 解析日期，回退到 LastModified`);
+        }
+
         const item = {
             src: `${R2_PUBLIC_URL}/${imgKey}`,
             alt: `黛溪 · ${baseName}`,
-            timestamp: imgObj.LastModified.getTime(),
+            timestamp: timestamp,
         };
         if (matchedVideo) {
             item.video = `${R2_PUBLIC_URL}/${matchedVideo.Key}`;

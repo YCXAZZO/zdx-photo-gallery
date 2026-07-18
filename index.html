@@ -35,7 +35,6 @@
             --tag-bg: #fcf8f6;
         }
 
-        /* ===== 深色模式 ===== */
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg-body: #1a1614;
@@ -1032,10 +1031,12 @@
             // 5. 渲染网格（带分割线）
             // ============================================================
             function renderGridWithSections(mode, subValue, pinnedGroup, unpinnedData) {
+                console.log('🎨 开始渲染，pinnedGroup:', pinnedGroup);
                 grid.innerHTML = '';
 
                 // ---- 置顶分组 ----
                 if (pinnedGroup && pinnedGroup.length > 0) {
+                    console.log('📌 渲染置顶分组，项数:', pinnedGroup.length);
                     const key = 'pinned';
                     if (collapseState[key] === undefined) collapseState[key] = false;
                     const divider = createDivider('📌 置顶', '', key, collapseState[key]);
@@ -1048,7 +1049,9 @@
                         itemsContainer.appendChild(card);
                     });
                     grid.appendChild(itemsContainer);
-                    console.log('✅ 已渲染置顶分组，项数:', pinnedGroup.length);
+                    console.log('✅ 置顶分组已渲染');
+                } else {
+                    console.log('⚠️ 无置顶项，跳过置顶分组');
                 }
 
                 // ---- 非置顶分组 ----

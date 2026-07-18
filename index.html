@@ -329,7 +329,6 @@
             opacity: 1;
         }
 
-        /* 纯视频直接显示（不透明） */
         .grid-item .media-wrapper video.visible {
             opacity: 1;
         }
@@ -624,9 +623,19 @@
             width: 50px;
             height: 50px;
             border-radius: 8px;
-            object-fit: cover;
+            overflow: hidden;
             flex-shrink: 0;
             background: var(--bg-divider);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-body .file-item .thumbnail img,
+        .modal-body .file-item .thumbnail video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .modal-body .file-item .file-name {
@@ -1001,7 +1010,7 @@
             }
 
             // ============================================================
-            // 3. 媒体类型（区分纯视频）
+            // 3. 媒体类型
             // ============================================================
             function getMediaType(item) {
                 if (item.isVideoOnly) {
@@ -1020,7 +1029,7 @@
             }
 
             // ============================================================
-            // 4. 排序与渲染
+            // 4. 排序与渲染（修复类型模式置顶）
             // ============================================================
             function applySortAndRender() {
                 const activeMode = document.querySelector('.sort-btn[data-mode].active');
@@ -1035,6 +1044,7 @@
 
                 console.log('🔀 模式:', mode, '子选项:', subValue);
 
+                // ---- 统一提取置顶和非置顶 ----
                 const pinnedItems = [];
                 const unpinnedItems = [];
 
@@ -1047,12 +1057,16 @@
                     }
                 });
 
+                console.log(`📌 置顶项数量: ${pinnedItems.length}，非置顶项数量: ${unpinnedItems.length}`);
+
+                // 置顶项排序（按置顶顺序）
                 pinnedItems.sort((a, b) => {
                     const aName = a.src.split('/').pop();
                     const bName = b.src.split('/').pop();
                     return pinnedFiles.indexOf(aName) - pinnedFiles.indexOf(bName);
                 });
 
+                // ---- 对非置顶项排序 ----
                 if (mode === 'time') {
                     unpinnedItems.sort((a, b) => {
                         const t1 = a.timestamp || 0;
@@ -1060,6 +1074,7 @@
                         return subValue === 'old' ? t1 - t2 : t2 - t1;
                     });
                 } else {
+                    // 类型模式
                     const photos = unpinnedItems.filter(item => getMediaType(item) === 'photo');
                     const lives = unpinnedItems.filter(item => getMediaType(item) === 'live');
                     const videos = unpinnedItems.filter(item => getMediaType(item) === 'video');
@@ -1084,17 +1099,15 @@
                         }
                     });
 
-                    const unpinnedGroups = result;
-                    if (pinnedItems.length > 0) {
-                        const pinnedGroup = { type: 'pinned', items: pinnedItems };
-                        renderGridWithSections(mode, subValue, pinnedGroup, unpinnedGroups);
-                    } else {
-                        renderGridWithSections(mode, subValue, null, unpinnedGroups);
-                    }
+                    // 传递置顶分组
+                    const pinnedGroup = pinnedItems.length > 0 ? { type: 'pinned', items: pinnedItems } : null;
+                    renderGridWithSections(mode, subValue, pinnedGroup, result);
                     return;
                 }
 
-                renderGridWithSections(mode, subValue, pinnedItems, unpinnedItems);
+                // 时间轴模式
+                const pinnedGroup = pinnedItems.length > 0 ? { type: 'pinned', items: pinnedItems } : null;
+                renderGridWithSections(mode, subValue, pinnedGroup, unpinnedItems);
             }
 
             // ============================================================
@@ -1103,6 +1116,7 @@
             function renderGridWithSections(mode, subValue, pinnedGroup, unpinnedData) {
                 grid.innerHTML = '';
 
+                // ---- 置顶分组 ----
                 if (pinnedGroup && pinnedGroup.length > 0) {
                     const key = 'pinned';
                     if (collapseState[key] === undefined) collapseState[key] = false;
@@ -1118,6 +1132,7 @@
                     grid.appendChild(itemsContainer);
                 }
 
+                // ---- 非置顶分组 ----
                 if (mode === 'time') {
                     const unpinned = unpinnedData || [];
                     const yearMonthGroups = {};
@@ -1182,7 +1197,6 @@
                         const found = rawImages.find(item => item.src === src);
                         if (found) IMAGES.push(found);
                     } else {
-                        // 纯视频（没有 img）
                         const video = el.querySelector('video');
                         if (video) {
                             const src = video.src;
@@ -1263,10 +1277,9 @@
                     video.loop = true;
                     video.preload = 'metadata';
                     video.setAttribute('aria-hidden', 'true');
-                    video.classList.add('visible'); // 始终显示
+                    video.classList.add('visible');
                     wrapper.appendChild(video);
 
-                    // 悬停/触摸播放
                     div.addEventListener('mouseenter', () => {
                         video.play().catch(() => {});
                     });
@@ -1401,7 +1414,7 @@
                     if (item.video) {
                         const video = document.createElement('video');
                         video.src = item.video;
-                        video.poster = item.isVideoOnly ? '' : item.src; // 纯视频没有 poster
+                        video.poster = item.isVideoOnly ? '' : item.src;
                         video.controls = true;
                         video.muted = true;
                         video.playsInline = true;
@@ -1528,7 +1541,7 @@
             });
 
             // ============================================================
-            // 11. 置顶管理功能
+            // 11. 置顶管理功能（修复纯视频缩略图）
             // ============================================================
             debugToggle.addEventListener('click', () => {
                 passwordModal.classList.add('active');
@@ -1591,18 +1604,37 @@
                     div.draggable = true;
                     div.dataset.index = index;
 
-                    const thumb = document.createElement('img');
-                    thumb.className = 'thumbnail';
-                    thumb.src = item.src;
-                    thumb.alt = item.alt;
-                    thumb.loading = 'lazy';
-                    div.appendChild(thumb);
+                    // 缩略图容器
+                    const thumbContainer = document.createElement('div');
+                    thumbContainer.className = 'thumbnail';
 
+                    if (item.isVideoOnly) {
+                        // 纯视频：使用 video 元素显示第一帧
+                        const video = document.createElement('video');
+                        video.src = item.video;
+                        video.muted = true;
+                        video.playsInline = true;
+                        video.preload = 'metadata';
+                        video.setAttribute('playsinline', '');
+                        video.load();
+                        thumbContainer.appendChild(video);
+                    } else {
+                        const img = document.createElement('img');
+                        img.src = item.src;
+                        img.alt = item.alt;
+                        img.loading = 'lazy';
+                        thumbContainer.appendChild(img);
+                    }
+
+                    div.appendChild(thumbContainer);
+
+                    // 文件名
                     const nameSpan = document.createElement('span');
                     nameSpan.className = 'file-name';
                     nameSpan.textContent = item.fileName;
                     div.appendChild(nameSpan);
 
+                    // 复选框
                     const check = document.createElement('input');
                     check.type = 'checkbox';
                     check.className = 'pin-check';
@@ -1631,11 +1663,13 @@
                     });
                     div.appendChild(check);
 
+                    // 拖拽手柄
                     const dragHandle = document.createElement('span');
                     dragHandle.className = 'drag-handle';
                     dragHandle.textContent = '⠿';
                     div.appendChild(dragHandle);
 
+                    // 拖拽事件
                     div.addEventListener('dragstart', (e) => {
                         e.dataTransfer.setData('text/plain', index);
                         div.style.opacity = '0.5';

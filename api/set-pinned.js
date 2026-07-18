@@ -1,5 +1,5 @@
 // api/set-pinned.js
-import { set } from '../../lib/redis.js';
+import { get, set, incr } from '../lib/redis.js';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {

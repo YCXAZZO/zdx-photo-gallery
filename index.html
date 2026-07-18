@@ -1028,15 +1028,16 @@
             }
 
             // ============================================================
-            // 5. 渲染网格（带分割线）
+            // 5. 渲染网格（带分割线）——修复置顶判断
             // ============================================================
             function renderGridWithSections(mode, subValue, pinnedGroup, unpinnedData) {
                 console.log('🎨 开始渲染，pinnedGroup:', pinnedGroup);
                 grid.innerHTML = '';
 
                 // ---- 置顶分组 ----
-                if (pinnedGroup && pinnedGroup.length > 0) {
-                    console.log('📌 渲染置顶分组，项数:', pinnedGroup.length);
+                // 修复判断条件：检查 pinnedGroup.items.length
+                if (pinnedGroup && pinnedGroup.items && pinnedGroup.items.length > 0) {
+                    console.log('📌 渲染置顶分组，项数:', pinnedGroup.items.length);
                     const key = 'pinned';
                     if (collapseState[key] === undefined) collapseState[key] = false;
                     const divider = createDivider('📌 置顶', '', key, collapseState[key]);
@@ -1044,14 +1045,14 @@
                     const itemsContainer = document.createElement('div');
                     itemsContainer.className = `section-items${collapseState[key] ? ' collapsed' : ''}`;
                     itemsContainer.dataset.sectionKey = key;
-                    pinnedGroup.forEach(item => {
+                    pinnedGroup.items.forEach(item => {
                         const card = createCard(item);
                         itemsContainer.appendChild(card);
                     });
                     grid.appendChild(itemsContainer);
                     console.log('✅ 置顶分组已渲染');
                 } else {
-                    console.log('⚠️ 无置顶项，跳过置顶分组');
+                    console.log('⚠️ 无置顶项（或数据结构不正确），跳过置顶分组');
                 }
 
                 // ---- 非置顶分组 ----

@@ -966,10 +966,27 @@
                     <button class="modal-close-btn" id="fansAdminCloseBtn">✕</button>
                 </div>
             </div>
-            <div class="modal-body" id="fansAdminBody"></div>
+            <div class="modal-body" id="fansAdminBody">
+                <!-- 快速上传区域 -->
+                <div id="fansUploadArea" style="margin-bottom: 1rem; padding: 1rem; border: 2px dashed var(--border-divider); border-radius: 16px; text-align: center; transition: background 0.2s;">
+                    <div id="fansUploadDropZone" style="cursor: pointer; padding: 1rem;">
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">📤 拖拽或点击上传文件（图片/视频）</p>
+                        <p style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.3rem;">支持 jpg, png, webp, mp4, mov, m4v</p>
+                        <input type="file" id="fansFileInput" accept="image/*,video/*" style="display: none;" multiple />
+                    </div>
+                    <div id="fansUploadProgress" style="display: none; margin-top: 0.5rem;">
+                        <div style="height: 4px; background: var(--border-divider); border-radius: 2px; overflow: hidden;">
+                            <div id="fansUploadProgressBar" style="height: 100%; width: 0%; background: var(--accent); transition: width 0.3s;"></div>
+                        </div>
+                        <p id="fansUploadStatus" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem;">上传中...</p>
+                    </div>
+                </div>
+                <!-- 作品列表 -->
+                <div id="fansListContainer"></div>
+            </div>
             <div class="modal-footer">
                 <button class="btn-secondary" id="fansAdminCancelBtn">关闭</button>
-                <button class="btn-primary" id="fansAdminAddBtn">＋ 新增作品</button>
+                <button class="btn-primary" id="fansAdminAddBtn">＋ 新增作品（手动）</button>
             </div>
         </div>
     </div>
@@ -1056,7 +1073,6 @@
             let bgmUserClosed = localStorage.getItem('userCloseBgm') === '1';
             let bgmAutoPaused = sessionStorage.getItem('bgmAutoPause') === '1';
 
-            // 初始化图标状态
             function updateBgmIcon() {
                 if (bgmUserClosed) {
                     bgmIcon.textContent = '🔇';
@@ -1072,30 +1088,20 @@
                 }
             }
 
-            // 尝试播放 BGM
             function tryPlayBgm() {
                 if (bgmUserClosed) return;
-                if (bgmAutoPaused) {
-                    // 方案B：素材暂停了 BGM，用户必须手动点击恢复，这里不自动播放
-                    return;
-                }
+                if (bgmAutoPaused) return;
                 bgmAudio.play().then(() => {
                     bgmPlaying = true;
                     updateBgmIcon();
-                }).catch(() => {
-                    // 浏览器阻止自动播放，忽略
-                    bgmPlaying = false;
-                    updateBgmIcon();
-                });
+                }).catch(() => {});
             }
 
-            // 暂停 BGM（外部调用，如视频播放时）
             function pauseBgm(reason) {
                 if (bgmUserClosed) return;
                 if (!bgmPlaying) return;
                 bgmAudio.pause();
                 bgmPlaying = false;
-                // 如果是视频播放导致的暂停，写入 sessionStorage 标记
                 if (reason === 'video') {
                     sessionStorage.setItem('bgmAutoPause', '1');
                     bgmAutoPaused = true;
@@ -1103,33 +1109,24 @@
                 updateBgmIcon();
             }
 
-            // 手动切换 BGM
             function toggleBgm() {
                 if (bgmUserClosed) {
-                    // 用户已永久关闭，点击恢复
                     bgmUserClosed = false;
                     localStorage.removeItem('userCloseBgm');
-                    // 清除临时标记
                     sessionStorage.removeItem('bgmAutoPause');
                     bgmAutoPaused = false;
-                    // 尝试播放
                     tryPlayBgm();
                     return;
                 }
-
                 if (bgmPlaying) {
-                    // 暂停
                     bgmAudio.pause();
                     bgmPlaying = false;
-                    // 如果用户手动暂停，视为永久关闭
                     bgmUserClosed = true;
                     localStorage.setItem('userCloseBgm', '1');
-                    // 清除临时标记
                     sessionStorage.removeItem('bgmAutoPause');
                     bgmAutoPaused = false;
                     updateBgmIcon();
                 } else {
-                    // 用户手动开启，清除所有关闭标记
                     bgmUserClosed = false;
                     localStorage.removeItem('userCloseBgm');
                     sessionStorage.removeItem('bgmAutoPause');
@@ -1138,27 +1135,15 @@
                 }
             }
 
-            // 点击事件
             bgmToggle.addEventListener('click', toggleBgm);
-
-            // 音频自动播放失败时的处理
-            bgmAudio.addEventListener('play', () => {
-                bgmPlaying = true;
-                updateBgmIcon();
-            });
-            bgmAudio.addEventListener('pause', () => {
-                bgmPlaying = false;
-                updateBgmIcon();
-            });
-            bgmAudio.addEventListener('ended', () => {
-                // 循环播放，无需处理
-            });
-
-            // 初始化：不自动播放，图标显示暂停状态
+            bgmAudio.addEventListener('play', () => { bgmPlaying = true;
+                updateBgmIcon(); });
+            bgmAudio.addEventListener('pause', () => { bgmPlaying = false;
+                updateBgmIcon(); });
             updateBgmIcon();
 
             // ============================================================
-            // 1. DOM 引用（原有）
+            // 1. DOM 引用
             // ============================================================
             const grid = document.getElementById('photoGrid');
             const lightbox = document.getElementById('lightbox');
@@ -1211,6 +1196,13 @@
             const fansFormFeatured = document.getElementById('fansFormFeatured');
             const fansFormActive = document.getElementById('fansFormActive');
 
+            // 上传相关 DOM
+            const uploadDropZone = document.getElementById('fansUploadDropZone');
+            const fileInput = document.getElementById('fansFileInput');
+            const uploadProgress = document.getElementById('fansUploadProgress');
+            const uploadProgressBar = document.getElementById('fansUploadProgressBar');
+            const uploadStatus = document.getElementById('fansUploadStatus');
+
             let swiperInstance = null;
             let currentIndex = 0;
             let rawImages = [];
@@ -1225,7 +1217,7 @@
             let fansList = [];
 
             // ============================================================
-            // 2. 加载官方数据（原有）
+            // 2. 加载官方数据
             // ============================================================
             async function loadImages() {
                 try {
@@ -1302,7 +1294,7 @@
             }
 
             // ============================================================
-            // 3. 排序与渲染（包含 BGM 视频互斥增强）
+            // 3. 排序与渲染
             // ============================================================
             function applySortAndRender() {
                 const modeRow = document.getElementById('modeRow');
@@ -1527,7 +1519,7 @@
             }
 
             // ============================================================
-            // 4. 卡片与灯箱（包含 BGM 视频互斥）
+            // 4. 卡片与灯箱
             // ============================================================
             function createCard(item) {
                 const div = document.createElement('div');
@@ -1552,7 +1544,6 @@
                     video.classList.add('visible');
                     wrapper.appendChild(video);
 
-                    // ===== 视频播放事件绑定（BGM 互斥） =====
                     video.addEventListener('play', () => {
                         if (!bgmUserClosed && bgmPlaying) {
                             pauseBgm('video');
@@ -1638,7 +1629,6 @@
                     }
                 }
 
-                // 粉丝作品信息栏与精选角标（不变）
                 if (isFans) {
                     const infoBar = document.createElement('div');
                     infoBar.style.cssText = `
@@ -1729,7 +1719,6 @@
                 return div;
             }
 
-            // 粉丝灯箱构建（含 BGM 互斥）
             function buildLightboxForFans(items, initialSlide) {
                 swiperWrapper.innerHTML = '';
                 items.forEach((item) => {
@@ -1746,7 +1735,6 @@
                         video.playsInline = true;
                         video.preload = 'metadata';
                         video.setAttribute('playsinline', '');
-                        // BGM 互斥：视频播放时暂停 BGM
                         video.addEventListener('play', () => {
                             if (!bgmUserClosed && bgmPlaying) {
                                 pauseBgm('video');
@@ -1760,7 +1748,6 @@
                         zoomContainer.appendChild(img);
                     }
                     slide.appendChild(zoomContainer);
-                    // 底部信息栏
                     const infoBar = document.createElement('div');
                     infoBar.style.cssText = `
                         position: absolute;
@@ -1853,7 +1840,6 @@
                 }, 100);
             }
 
-            // 官方灯箱
             function openLightbox(index) {
                 if (!IMAGES.length) { console.warn('IMAGES 为空'); return; }
                 currentIndex = Math.min(index, IMAGES.length - 1);
@@ -1991,7 +1977,7 @@
             });
 
             // ============================================================
-            // 6. UI 事件绑定（排序、切换等）
+            // 6. UI 事件绑定
             // ============================================================
             closeBtn.addEventListener('click', closeLightbox);
             lightbox.addEventListener('click', (e) => {
@@ -2207,7 +2193,7 @@
                     const res = await fetch('/api/set-pinned', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ pinned: newPinned })
+                        body: JSON.stringify({ pinned: newPinned, password: ADMIN_PASSWORD })
                     });
                     if (!res.ok) throw new Error('保存失败');
                     const result = await res.json();
@@ -2237,11 +2223,94 @@
             });
 
             // ============================================================
-            // 8. 粉丝作品管理
+            // 8. 粉丝作品管理（含快速上传）
             // ============================================================
+            // 上传事件
+            uploadDropZone.addEventListener('click', () => fileInput.click());
+
+            uploadDropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadDropZone.style.background = 'var(--bg-divider)';
+            });
+            uploadDropZone.addEventListener('dragleave', () => {
+                uploadDropZone.style.background = 'transparent';
+            });
+            uploadDropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadDropZone.style.background = 'transparent';
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFansUpload(files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) {
+                    handleFansUpload(fileInput.files[0]);
+                }
+                fileInput.value = '';
+            });
+
+            async function handleFansUpload(file) {
+                const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime', 'video/x-m4v'];
+                if (!validTypes.includes(file.type)) {
+                    alert('不支持的文件格式，请上传图片或视频');
+                    return;
+                }
+                uploadProgress.style.display = 'block';
+                uploadProgressBar.style.width = '0%';
+                uploadStatus.textContent = '准备上传...';
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('password', ADMIN_PASSWORD);
+
+                try {
+                    const response = await fetch('/api/fans/upload', {
+                        method: 'POST',
+                        body: formData,
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        uploadProgressBar.style.width = '100%';
+                        uploadStatus.textContent = '✅ 上传成功！';
+                        const url = result.url;
+                        const isVideo = file.type.startsWith('video/');
+                        if (isVideo) {
+                            fansFormVideo.value = url;
+                        } else {
+                            fansFormSrc.value = url;
+                        }
+                        const baseName = file.name.split('.')[0];
+                        if (!fansFormCreator.value) {
+                            fansFormCreator.value = `@${baseName}`;
+                        }
+                        if (!fansFormDate.value) {
+                            fansFormDate.value = new Date().toISOString().slice(0, 10);
+                        }
+                        fansFormModal.classList.add('active');
+                        setTimeout(() => {
+                            uploadProgress.style.display = 'none';
+                        }, 1500);
+                    } else {
+                        alert('上传失败：' + (result.error || '未知错误'));
+                        uploadProgress.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('上传错误:', error);
+                    alert('上传失败，请检查网络');
+                    uploadProgress.style.display = 'none';
+                }
+            }
+
+            // 粉丝列表加载（带密码）
             async function loadFansList() {
                 try {
-                    const res = await fetch('/api/fans/list');
+                    const res = await fetch('/api/fans/list', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password: ADMIN_PASSWORD })
+                    });
                     const result = await res.json();
                     console.log('📡 粉丝列表API返回:', result);
                     if (result.success) {
@@ -2258,9 +2327,10 @@
             }
 
             function renderFansAdminList() {
-                fansAdminBody.innerHTML = '';
+                const container = document.getElementById('fansListContainer');
+                container.innerHTML = '';
                 if (fansList.length === 0) {
-                    fansAdminBody.innerHTML = `
+                    container.innerHTML = `
                         <p style="text-align:center; color:var(--text-muted); padding:2rem 0;">
                             暂无粉丝作品，点击「新增作品」添加
                         </p>
@@ -2341,7 +2411,7 @@
                     actions.appendChild(delBtn);
 
                     div.appendChild(actions);
-                    fansAdminBody.appendChild(div);
+                    container.appendChild(div);
                 });
             }
 
@@ -2350,7 +2420,7 @@
                     const res = await fetch('/api/fans/toggle-featured', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id })
+                        body: JSON.stringify({ id, password: ADMIN_PASSWORD })
                     });
                     const result = await res.json();
                     if (result.success) {
@@ -2369,7 +2439,7 @@
                     const res = await fetch('/api/fans/toggle-active', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id })
+                        body: JSON.stringify({ id, password: ADMIN_PASSWORD })
                     });
                     const result = await res.json();
                     if (result.success) {
@@ -2388,7 +2458,7 @@
                     const res = await fetch('/api/fans/delete', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id })
+                        body: JSON.stringify({ id, password: ADMIN_PASSWORD })
                     });
                     const result = await res.json();
                     if (result.success) {
@@ -2447,6 +2517,7 @@
                     date: fansFormDate.value,
                     isFeatured: fansFormFeatured.checked,
                     isActive: fansFormActive.checked,
+                    password: ADMIN_PASSWORD,
                 };
                 if (!data.src || !data.creatorId || !data.category) {
                     alert('请填写完整信息（图片URL、粉丝ID、分类为必填）');

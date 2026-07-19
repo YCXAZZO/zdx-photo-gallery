@@ -841,12 +841,10 @@
 
 <body>
 
-    <!-- ===== 背景音乐图标（右上角） ===== -->
+    <!-- ===== 背景音乐图标 ===== -->
     <button class="bgm-toggle" id="bgmToggle" aria-label="背景音乐" title="背景音乐">
         <span class="icon paused" id="bgmIcon">🎵</span>
     </button>
-
-    <!-- ===== 隐藏的音频元素 ===== -->
     <audio id="bgmAudio" src="https://img.ycxazzo.top/music/Both%20of%20Us%20(Orginal%20Mix)%20-%20idealism.mp3" preload="auto" loop></audio>
 
     <div class="gallery-wrapper">
@@ -856,7 +854,7 @@
             <p class="hint">点击放大 · 支持双击/捏合缩放<br><b>「Beta阶段 仅供预览」</b></p>
         </header>
 
-        <!-- ===== 排序控制栏（三行结构） ===== -->
+        <!-- ===== 排序控制栏 ===== -->
         <div class="sort-controls">
             <div class="sort-row" id="sourceRow">
                 <span class="label">来源：</span>
@@ -967,7 +965,7 @@
                 </div>
             </div>
             <div class="modal-body" id="fansAdminBody">
-                <!-- 快速上传区域 -->
+                <!-- 快速上传 -->
                 <div id="fansUploadArea" style="margin-bottom: 1rem; padding: 1rem; border: 2px dashed var(--border-divider); border-radius: 16px; text-align: center; transition: background 0.2s;">
                     <div id="fansUploadDropZone" style="cursor: pointer; padding: 1rem;">
                         <p style="color: var(--text-secondary); font-size: 0.9rem;">📤 拖拽或点击上传文件（图片/视频）</p>
@@ -981,7 +979,6 @@
                         <p id="fansUploadStatus" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem;">上传中...</p>
                     </div>
                 </div>
-                <!-- 作品列表 -->
                 <div id="fansListContainer"></div>
             </div>
             <div class="modal-footer">
@@ -1055,9 +1052,7 @@
         </div>
     </div>
 
-    <!-- ===== 引入 Swiper ===== -->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-
     <script>
         (function() {
             'use strict';
@@ -1196,7 +1191,6 @@
             const fansFormFeatured = document.getElementById('fansFormFeatured');
             const fansFormActive = document.getElementById('fansFormActive');
 
-            // 上传相关 DOM
             const uploadDropZone = document.getElementById('fansUploadDropZone');
             const fileInput = document.getElementById('fansFileInput');
             const uploadProgress = document.getElementById('fansUploadProgress');
@@ -1213,13 +1207,24 @@
             const ADMIN_PASSWORD = '2432';
 
             let currentSource = 'official';
-            let fansImages = [];
             let fansList = [];
 
             // ============================================================
-            // 2. 加载官方数据
+            // 2. 加载官方数据 & 初始化来源状态
             // ============================================================
             async function loadImages() {
+                // 从 localStorage 恢复来源状态
+                const savedSource = localStorage.getItem('photoWallSource');
+                if (savedSource === 'fans' || savedSource === 'official') {
+                    currentSource = savedSource;
+                } else {
+                    currentSource = 'official';
+                }
+                // 同步按钮状态
+                document.querySelectorAll('.sort-btn[data-source]').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.source === currentSource);
+                });
+
                 try {
                     const response = await fetch('data.json');
                     if (!response.ok) throw new Error('data.json 加载失败');
@@ -1230,6 +1235,10 @@
                         return;
                     }
                     await fetchPinnedList();
+                    // 如果当前是粉丝模式，先加载粉丝数据
+                    if (currentSource === 'fans') {
+                        await fetchFansData();
+                    }
                     applySortAndRender();
                     updateStats();
                     console.log('📸 照片墙已加载，图片数量:', rawImages.length);
@@ -1294,7 +1303,31 @@
             }
 
             // ============================================================
-            // 3. 排序与渲染
+            // 3. 获取粉丝数据（独立函数）
+            // ============================================================
+            async function fetchFansData() {
+                try {
+                    const res = await fetch('/api/fans/list', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password: ADMIN_PASSWORD })
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        fansList = result.data || [];
+                        console.log('📡 粉丝数据已加载，数量:', fansList.length);
+                    } else {
+                        console.warn('加载粉丝数据失败:', result.error);
+                        fansList = [];
+                    }
+                } catch (error) {
+                    console.warn('加载粉丝数据网络错误:', error);
+                    fansList = [];
+                }
+            }
+
+            // ============================================================
+            // 4. 排序与渲染
             // ============================================================
             function applySortAndRender() {
                 const modeRow = document.getElementById('modeRow');
@@ -1519,7 +1552,7 @@
             }
 
             // ============================================================
-            // 4. 卡片与灯箱（含修正后的精选角标）
+            // 5. 卡片与灯箱（包含精选标签）
             // ============================================================
             function createCard(item) {
                 const div = document.createElement('div');
@@ -1655,7 +1688,7 @@
                     infoBar.appendChild(msgLine);
                     div.appendChild(infoBar);
 
-                    // ===== 精选角标（已修正） =====
+                    // 精选角标
                     if (item.isFeatured) {
                         const badge = document.createElement('div');
                         badge.textContent = '⭐ 精选';
@@ -1958,7 +1991,7 @@
             }
 
             // ============================================================
-            // 5. 键盘事件
+            // 6. 键盘事件
             // ============================================================
             document.addEventListener('keydown', (e) => {
                 if (!lightbox.classList.contains('active')) return;
@@ -1979,7 +2012,7 @@
             });
 
             // ============================================================
-            // 6. UI 事件绑定
+            // 7. UI 事件绑定（含来源状态持久化）
             // ============================================================
             closeBtn.addEventListener('click', closeLightbox);
             lightbox.addEventListener('click', (e) => {
@@ -2013,6 +2046,7 @@
                     document.querySelectorAll('.sort-btn[data-source]').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
                     currentSource = this.dataset.source;
+                    localStorage.setItem('photoWallSource', currentSource);
                     const modeRow = document.getElementById('modeRow');
                     const subRow = document.getElementById('subRow');
                     if (currentSource === 'official') {
@@ -2031,13 +2065,17 @@
                     } else {
                         modeRow.style.display = 'none';
                         subRow.style.display = 'none';
+                        // 加载粉丝数据（如果未加载）
+                        if (fansList.length === 0) {
+                            fetchFansData().then(() => applySortAndRender());
+                        }
                     }
                     applySortAndRender();
                 });
             });
 
             // ============================================================
-            // 7. 置顶管理
+            // 8. 置顶管理
             // ============================================================
             debugToggle.addEventListener('click', () => {
                 passwordModal.classList.add('active');
@@ -2225,7 +2263,7 @@
             });
 
             // ============================================================
-            // 8. 粉丝作品管理（含快速上传）
+            // 9. 粉丝作品管理（含快速上传）
             // ============================================================
             // 上传事件
             uploadDropZone.addEventListener('click', () => fileInput.click());
@@ -2254,13 +2292,11 @@
             });
 
             async function handleFansUpload(file) {
-                // 文件大小检查
-                const maxSize = 4 * 1024 * 1024; // 4MB
+                const maxSize = 4 * 1024 * 1024;
                 if (file.size > maxSize) {
-                    alert('文件大小超过4MB限制，请压缩后重试（图片建议使用 WebP 格式，视频建议降低码率）');
+                    alert('文件大小超过4MB限制，请压缩后重试');
                     return;
                 }
-
                 const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime', 'video/x-m4v'];
                 if (!validTypes.includes(file.type)) {
                     alert('不支持的文件格式，请上传图片或视频');
@@ -2279,17 +2315,8 @@
                         method: 'POST',
                         body: formData,
                     });
-                    // 尝试解析 JSON
-                    const text = await response.text();
-                    let result;
-                    try {
-                        result = JSON.parse(text);
-                    } catch (e) {
-                        console.error('响应不是 JSON:', text);
-                        throw new Error('服务器返回非 JSON 响应');
-                    }
-
-                    if (response.ok && result.success) {
+                    const result = await response.json();
+                    if (result.success) {
                         uploadProgressBar.style.width = '100%';
                         uploadStatus.textContent = '✅ 上传成功！';
                         const url = result.url;
@@ -2316,12 +2343,12 @@
                     }
                 } catch (error) {
                     console.error('上传错误:', error);
-                    alert('上传失败，请检查网络或文件大小（限制 4MB）');
+                    alert('上传失败，请检查网络');
                     uploadProgress.style.display = 'none';
                 }
             }
 
-            // 粉丝列表加载（带密码）
+            // 粉丝管理列表加载
             async function loadFansList() {
                 try {
                     const res = await fetch('/api/fans/list', {
@@ -2330,16 +2357,14 @@
                         body: JSON.stringify({ password: ADMIN_PASSWORD })
                     });
                     const result = await res.json();
-                    console.log('📡 粉丝列表API返回:', result);
                     if (result.success) {
                         fansList = result.data || [];
                         renderFansAdminList();
                     } else {
                         alert('加载粉丝作品失败：' + (result.error || '未知错误'));
-                        console.error('❌ 粉丝列表API错误:', result);
                     }
                 } catch (error) {
-                    console.error('❌ 加载粉丝作品网络错误:', error);
+                    console.error('加载粉丝作品网络错误:', error);
                     alert('加载粉丝作品失败，请检查网络');
                 }
             }
@@ -2594,7 +2619,7 @@
             });
 
             // ============================================================
-            // 9. 启动
+            // 10. 启动
             // ============================================================
             loadImages();
             updateVisitCount();

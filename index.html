@@ -769,8 +769,8 @@
     <div class="gallery-wrapper">
         <header class="gallery-header">
             <h1>#黛机时刻</h1>
-            <p class="subtitle">​​Daisy’s Photo Gallery​ <span class="heart">❤️</span></p>
-            <p class="hint">点击任意照片放大 · 左右滑动浏览<br><b>「Beta阶段 仅供预览」</b></p>
+            <p class="subtitle"><span class="heart">❤️</span> ​​Daisy’s Photo Gallery​ <span class="heart">❤️</span></p>
+            <p class="hint">点击放大 · 支持双击/捏合缩放<br><b>「Beta阶段 仅供预览」</b></p>
         </header>
 
         <!-- ===== 排序控制栏 ===== -->
@@ -803,7 +803,7 @@
         </div>
 
         <!-- ===== 非商务说明 ===== -->
-        <div style="text-align: center; margin-top: 1.5rem; font-size: 1rem; color: var(--text-muted); letter-spacing: 0.5px;">
+        <div style="text-align: center; margin: 1.5rem auto 0; width: fit-content; font-size: 1rem; color: var(--text-muted); letter-spacing: 0.5px;">
             「仅展示非商务内容」
         </div>
 
@@ -956,10 +956,10 @@
                     const res = await fetch('/api/visit');
                     if (!res.ok) throw new Error('获取访客数失败');
                     const data = await res.json();
-                    visitCounter.textContent = `👀 访问数：${data.count}`;
+                    visitCounter.textContent = `访问数：${data.count}`;
                 } catch (error) {
                     console.warn('访客计数失败:', error);
-                    visitCounter.textContent = '👀 访问数：--';
+                    visitCounter.textContent = '访问数：--';
                 }
             }
 

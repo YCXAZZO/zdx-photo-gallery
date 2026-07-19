@@ -28,13 +28,14 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'Form parse error: ' + err.message });
         }
 
-        // 验证密码
+        // 验证密码（兼容数组格式）
         const adminPassword = process.env.ADMIN_PASSWORD || '2432';
-        if (fields.password !== adminPassword) {
+        const password = fields.password ? (Array.isArray(fields.password) ? fields.password[0] : fields.password) : '';
+        if (password !== adminPassword) {
             return res.status(403).json({ error: 'Invalid password' });
         }
 
-        const file = files.file;
+        const file = files.file ? (Array.isArray(files.file) ? files.file[0] : files.file) : undefined;
         if (!file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }

@@ -10,44 +10,31 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-    // 记录请求开始
-    console.log('📤 Upload API called');
-
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
-        const form = new formidable.IncomingForm({
+        const form = formidable({
             maxFileSize: 4 * 1024 * 1024, // 4MB
             keepExtensions: true,
         });
 
-        // 用 Promise 包装 form.parse
-        const { fields, files } = await new Promise((resolve, reject) => {
-            form.parse(req, (err, fields, files) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve({ fields, files });
-                }
-            });
-        });
-
-        console.log('✅ Form parsed successfully');
+        const [fields, files] = await form.parse(req);
 
         // 验证密码
         const adminPassword = process.env.ADMIN_PASSWORD || '2432';
-        if (fields.password !== adminPassword) {
+        const password = fields.password ? fields.password[0] : '';
+        if (password !== adminPassword) {
             return res.status(403).json({ error: 'Invalid password' });
         }
 
-        const file = files.file;
+        const file = files.file ? files.file[0] : undefined;
         if (!file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        // 检查环境变量
+        // 检查 R2 环境变量
         const {
             R2_ACCOUNT_ID,
             R2_ACCESS_KEY_ID,
@@ -56,16 +43,8 @@ export default async function handler(req, res) {
             R2_PUBLIC_URL,
         } = process.env;
 
-        console.log('🔑 R2 env check:', {
-            R2_ACCOUNT_ID: R2_ACCOUNT_ID ? '✅' : '❌',
-            R2_ACCESS_KEY_ID: R2_ACCESS_KEY_ID ? '✅' : '❌',
-            R2_SECRET_ACCESS_KEY: R2_SECRET_ACCESS_KEY ? '✅' : '❌',
-            R2_BUCKET_NAME: R2_BUCKET_NAME ? '✅' : '❌',
-            R2_PUBLIC_URL: R2_PUBLIC_URL ? '✅' : '❌',
-        });
-
         if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME || !R2_PUBLIC_URL) {
-            console.error('❌ Missing R2 environment variables');
+            console.error('Missing R2 environment variables');
             return res.status(500).json({ error: 'Server configuration error: missing R2 env vars' });
         }
 
@@ -85,26 +64,20 @@ export default async function handler(req, res) {
 
         const fileStream = fs.createReadStream(file.filepath);
 
-        const uploadParams = {
+        await s3Client.send(new PutObjectCommand({
             Bucket: R2_BUCKET_NAME,
             Key: key,
             Body: fileStream,
             ContentType: file.mimetype || 'application/octet-stream',
-        };
-
-        console.log(`⬆️ Uploading to R2: ${key}`);
-        await s3Client.send(new PutObjectCommand(uploadParams));
-        console.log('✅ Upload to R2 successful');
+        }));
 
         const publicUrl = `${R2_PUBLIC_URL}/${key}`;
         res.status(200).json({ success: true, url: publicUrl, key });
     } catch (error) {
-        console.error('❌ Upload error:', error);
-        // 判断错误类型
+        console.error('Upload error:', error);
         if (error.code === 'LIMIT_FILE_SIZE') {
             return res.status(413).json({ error: '文件大小超过4MB限制' });
         }
-        // 其他错误返回通用500，但包含错误信息以便调试
         res.status(500).json({ error: 'Upload failed: ' + error.message });
     }
 }

@@ -33,6 +33,7 @@
             --accent: #f2cdc4;
             --accent-hover: #e8bcb2;
             --tag-bg: #fcf8f6;
+            --bgm-color: #3d2c2a;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -53,6 +54,7 @@
                 --accent: #c4a89e;
                 --accent-hover: #b3968a;
                 --tag-bg: #1a1614;
+                --bgm-color: #f0e8e4;
             }
             .section-divider .label {
                 background: var(--bg-divider) !important;
@@ -88,6 +90,7 @@
         .gallery-header {
             text-align: center;
             margin-bottom: 1.5rem;
+            position: relative;
         }
         .gallery-header h1 {
             font-size: 2.6rem;
@@ -119,7 +122,75 @@
             color: var(--text-muted);
         }
 
-        /* ===== 排序控制栏 - 重构为三行 ===== */
+        /* ===== 背景音乐图标 ===== */
+        .bgm-toggle {
+            position: fixed;
+            top: 1.5rem;
+            right: 2rem;
+            z-index: 10000;
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+            color: var(--bgm-color);
+            user-select: none;
+            outline: none;
+            padding: 0;
+            line-height: 1;
+        }
+        .bgm-toggle:hover {
+            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+        .bgm-toggle:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+        .bgm-toggle .icon {
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+        .bgm-toggle .icon.playing {
+            animation: spin 4s linear infinite;
+        }
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        .bgm-toggle .icon.paused {
+            animation: none;
+        }
+        .bgm-toggle .icon.muted {
+            opacity: 0.4;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 640px) {
+            .bgm-toggle {
+                top: 1rem;
+                right: 1rem;
+                width: 32px;
+                height: 32px;
+                font-size: 1rem;
+            }
+        }
+
+        /* ===== 排序控制栏（三行） ===== */
         .sort-controls {
             display: flex;
             flex-direction: column;
@@ -154,7 +225,6 @@
             background: var(--border-divider);
         }
 
-        /* 子选项容器（方向/分组） */
         .sub-options {
             display: none;
         }
@@ -177,8 +247,13 @@
             font-family: inherit;
             outline: none;
         }
-        .sort-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-        .sort-btn:hover { background: var(--bg-divider); }
+        .sort-btn:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+        .sort-btn:hover {
+            background: var(--bg-divider);
+        }
         .sort-btn.active {
             background: var(--accent);
             border-color: var(--accent);
@@ -766,6 +841,14 @@
 
 <body>
 
+    <!-- ===== 背景音乐图标（右上角） ===== -->
+    <button class="bgm-toggle" id="bgmToggle" aria-label="背景音乐" title="背景音乐">
+        <span class="icon paused" id="bgmIcon">🎵</span>
+    </button>
+
+    <!-- ===== 隐藏的音频元素 ===== -->
+    <audio id="bgmAudio" src="https://img.ycxazzo.top/music/Both%20of%20Us%20(Orginal%20Mix)%20-%20idealism.mp3" preload="auto" loop></audio>
+
     <div class="gallery-wrapper">
         <header class="gallery-header">
             <h1>#黛机时刻</h1>
@@ -775,29 +858,22 @@
 
         <!-- ===== 排序控制栏（三行结构） ===== -->
         <div class="sort-controls">
-            <!-- 第1行：来源切换 -->
             <div class="sort-row" id="sourceRow">
                 <span class="label">来源：</span>
                 <button class="sort-btn active" data-source="official">官方素材</button>
                 <button class="sort-btn" data-source="fans">粉丝创作</button>
             </div>
-
-            <!-- 第2行：模式切换 -->
             <div class="sort-row" id="modeRow">
                 <span class="label">模式：</span>
                 <button class="sort-btn active" data-mode="time">时间轴</button>
                 <button class="sort-btn" data-mode="type">类型</button>
             </div>
-
-            <!-- 第3行：子选项（方向/分组） -->
             <div class="sort-row" id="subRow">
-                <!-- 时间轴子选项 -->
                 <div class="sub-options show" id="timeOptions">
                     <span class="label">方向：</span>
                     <button class="sort-btn" data-sub="old">旧在前</button>
                     <button class="sort-btn active" data-sub="new">新在前</button>
                 </div>
-                <!-- 类型子选项 -->
                 <div class="sub-options" id="typeOptions">
                     <span class="label">分组：</span>
                     <button class="sort-btn active" data-sub="photo">Photo 在前</button>
@@ -809,26 +885,17 @@
 
         <div class="grid" id="photoGrid"></div>
 
-        <div style="display: flex; justify-content: center; width: 100%;font-size: 1rem;">
+        <div style="display: flex; justify-content: center; width: 100%; font-size: 1rem;">
             <a href="https://zdx-role-test.ycxazzo.top" target="_blank" class="back-home">
                 ← 回到黛溪宇宙✨
             </a>
         </div>
 
-        <div style="
-            text-align: center;
-            margin: 1.5rem auto 0;
-            display: table;
-            font-size: 1rem;
-            color: var(--text-muted);
-        ">
+        <div style="text-align: center; margin: 1.5rem auto 0; display: table; font-size: 1rem; color: var(--text-muted);">
             「仅展示非商务内容」
         </div>
 
-        <!-- ===== 访客计数 ===== -->
         <div class="visit-counter" id="visitCounter">加载中...</div>
-
-        <!-- ===== 素材统计 ===== -->
         <div class="stats-counter" id="statsCounter">
             <span class="stat-item">📷 Photo <span id="photoCount">0</span> 张</span>
             <span class="stat-item">·</span>
@@ -850,7 +917,7 @@
     </div>
 
     <!-- ===== 调试按钮 ===== -->
-    <button class="debug-toggle" id="debugToggle" aria-label="管理置顶" title="管理置顶">⚙️</button>
+    <button class="debug-toggle" id="debugToggle" aria-label="管理" title="管理">⚙️</button>
 
     <!-- ===== 密码验证弹窗 ===== -->
     <div class="modal-overlay" id="passwordModal">
@@ -860,7 +927,7 @@
                 <button class="modal-close-btn" id="passwordCloseBtn">✕</button>
             </div>
             <div class="modal-body">
-                <p style="color:var(--text-secondary); margin-bottom:1rem;">请输入管理密码以进入置顶管理面板。</p>
+                <p style="color:var(--text-secondary); margin-bottom:1rem;">请输入管理密码以进入管理面板。</p>
                 <input type="password" id="passwordInput" placeholder="请输入密码" />
                 <div class="error-msg" id="passwordError">密码错误，请重试。</div>
             </div>
@@ -876,12 +943,97 @@
         <div class="modal-box">
             <div class="modal-header">
                 <h2>📌 管理置顶（拖拽排序）</h2>
-                <button class="modal-close-btn" id="adminCloseBtn">✕</button>
+                <div>
+                    <button id="adminToFansBtn" style="background:var(--accent); border:none; border-radius:30px; padding:0.3rem 0.8rem; margin-right:0.5rem; cursor:pointer; font-size:0.8rem; color:var(--text-primary);">🎨 粉丝作品</button>
+                    <button class="modal-close-btn" id="adminCloseBtn">✕</button>
+                </div>
             </div>
             <div class="modal-body" id="adminBody"></div>
             <div class="modal-footer">
                 <button class="btn-secondary" id="adminCancelBtn">取消</button>
                 <button class="btn-primary" id="adminSaveBtn">💾 保存置顶</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 粉丝作品管理面板 ===== -->
+    <div class="modal-overlay" id="fansAdminModal">
+        <div class="modal-box" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2>🎨 管理粉丝作品</h2>
+                <div>
+                    <button id="fansToAdminBtn" style="background:var(--accent); border:none; border-radius:30px; padding:0.3rem 0.8rem; margin-right:0.5rem; cursor:pointer; font-size:0.8rem; color:var(--text-primary);">📌 管理置顶</button>
+                    <button class="modal-close-btn" id="fansAdminCloseBtn">✕</button>
+                </div>
+            </div>
+            <div class="modal-body" id="fansAdminBody"></div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="fansAdminCancelBtn">关闭</button>
+                <button class="btn-primary" id="fansAdminAddBtn">＋ 新增作品</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 粉丝作品编辑/新增弹窗 ===== -->
+    <div class="modal-overlay" id="fansFormModal">
+        <div class="modal-box" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 id="fansFormTitle">新增粉丝作品</h2>
+                <button class="modal-close-btn" id="fansFormCloseBtn">✕</button>
+            </div>
+            <div class="modal-body" id="fansFormBody">
+                <form id="fansForm" style="display:flex; flex-direction:column; gap:0.8rem;">
+                    <input type="hidden" id="fansFormId" />
+                    <div>
+                        <label style="font-weight:500; font-size:0.9rem; color:var(--text-secondary);">作品类型 *</label>
+                        <select id="fansFormType" style="width:100%; padding:0.6rem; border-radius:30px; border:1px solid var(--border-divider); background:var(--bg-card); color:var(--text-primary); font-family:inherit;">
+                            <option value="photo">📷 Photo</option>
+                            <option value="live">🎬 Live</option>
+                            <option value="video">🎥 Vlog</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-weight:500; font-size:0.9rem; color:var(--text-secondary);">图片/封面 URL *</label>
+                        <input type="text" id="fansFormSrc" placeholder="https://img.ycxazzo.top/fans/xxx.jpg" style="width:100%; padding:0.6rem; border-radius:30px; border:1px solid var(--border-divider); background:var(--bg-card); color:var(--text-primary); font-family:inherit;" />
+                    </div>
+                    <div>
+                        <label style="font-weight:500; font-size:0.9rem; color:var(--text-secondary);">视频 URL（选填，仅 Live/Video 需要）</label>
+                        <input type="text" id="fansFormVideo" placeholder="https://img.ycxazzo.top/fans/xxx.mp4" style="width:100%; padding:0.6rem; border-radius:30px; border:1px solid var(--border-divider); background:var(--bg-card); color:var(--text-primary); font-family:inherit;" />
+                    </div>
+                    <div>
+                        <label style="font-weight:500; font-size:0.9rem; color:var(--text-secondary);">粉丝 ID *</label>
+                        <input type="text" id="fansFormCreator" placeholder="@小黛" style="width:100%; padding:0.6rem; border-radius:30px; border:1px solid var(--border-divider); background:var(--bg-card); color:var(--text-primary); font-family:inherit;" />
+                    </div>
+                    <div>
+                        <label style="font-weight:500; font-size:0.9rem; color:var(--text-secondary);">粉丝寄语</label>
+                        <textarea id="fansFormMessage" rows="2" placeholder="粉丝想说的话..." style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border-divider); background:var(--bg-card); color:var(--text-primary); font-family:inherit; resize:vertical;"></textarea>
+                    </div>
+                    <div>
+                        <label style="font-weight:500; font-size:0.9rem; color:var(--text-secondary);">作品分类 *</label>
+                        <select id="fansFormCategory" style="width:100%; padding:0.6rem; border-radius:30px; border:1px solid var(--border-divider); background:var(--bg-card); color:var(--text-primary); font-family:inherit;">
+                            <option value="手绘插画">🎨 手绘插画</option>
+                            <option value="调色修图">🎨 调色修图</option>
+                            <option value="文案海报">📝 文案海报</option>
+                            <option value="视频二创">🎬 视频二创</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-weight:500; font-size:0.9rem; color:var(--text-secondary);">投稿日期</label>
+                        <input type="date" id="fansFormDate" style="width:100%; padding:0.6rem; border-radius:30px; border:1px solid var(--border-divider); background:var(--bg-card); color:var(--text-primary); font-family:inherit;" />
+                    </div>
+                    <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+                        <label style="font-weight:500; font-size:0.9rem; color:var(--text-secondary); display:flex; align-items:center; gap:0.5rem;">
+                            <input type="checkbox" id="fansFormFeatured" /> ⭐ 精选
+                        </label>
+                        <label style="font-weight:500; font-size:0.9rem; color:var(--text-secondary); display:flex; align-items:center; gap:0.5rem;">
+                            <input type="checkbox" id="fansFormActive" checked /> ✅ 上架
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="fansFormCancelBtn">取消</button>
+                <button class="btn-primary" id="fansFormSaveBtn">💾 保存</button>
             </div>
         </div>
     </div>
@@ -894,7 +1046,119 @@
             'use strict';
 
             // ============================================================
-            // 1. DOM 引用
+            // 0. 背景音乐功能
+            // ============================================================
+            const bgmToggle = document.getElementById('bgmToggle');
+            const bgmIcon = document.getElementById('bgmIcon');
+            const bgmAudio = document.getElementById('bgmAudio');
+
+            let bgmPlaying = false;
+            let bgmUserClosed = localStorage.getItem('userCloseBgm') === '1';
+            let bgmAutoPaused = sessionStorage.getItem('bgmAutoPause') === '1';
+
+            // 初始化图标状态
+            function updateBgmIcon() {
+                if (bgmUserClosed) {
+                    bgmIcon.textContent = '🔇';
+                    bgmIcon.className = 'icon paused muted';
+                    return;
+                }
+                if (bgmPlaying) {
+                    bgmIcon.textContent = '🎵';
+                    bgmIcon.className = 'icon playing';
+                } else {
+                    bgmIcon.textContent = '🎵';
+                    bgmIcon.className = 'icon paused';
+                }
+            }
+
+            // 尝试播放 BGM
+            function tryPlayBgm() {
+                if (bgmUserClosed) return;
+                if (bgmAutoPaused) {
+                    // 方案B：素材暂停了 BGM，用户必须手动点击恢复，这里不自动播放
+                    return;
+                }
+                bgmAudio.play().then(() => {
+                    bgmPlaying = true;
+                    updateBgmIcon();
+                }).catch(() => {
+                    // 浏览器阻止自动播放，忽略
+                    bgmPlaying = false;
+                    updateBgmIcon();
+                });
+            }
+
+            // 暂停 BGM（外部调用，如视频播放时）
+            function pauseBgm(reason) {
+                if (bgmUserClosed) return;
+                if (!bgmPlaying) return;
+                bgmAudio.pause();
+                bgmPlaying = false;
+                // 如果是视频播放导致的暂停，写入 sessionStorage 标记
+                if (reason === 'video') {
+                    sessionStorage.setItem('bgmAutoPause', '1');
+                    bgmAutoPaused = true;
+                }
+                updateBgmIcon();
+            }
+
+            // 手动切换 BGM
+            function toggleBgm() {
+                if (bgmUserClosed) {
+                    // 用户已永久关闭，点击恢复
+                    bgmUserClosed = false;
+                    localStorage.removeItem('userCloseBgm');
+                    // 清除临时标记
+                    sessionStorage.removeItem('bgmAutoPause');
+                    bgmAutoPaused = false;
+                    // 尝试播放
+                    tryPlayBgm();
+                    return;
+                }
+
+                if (bgmPlaying) {
+                    // 暂停
+                    bgmAudio.pause();
+                    bgmPlaying = false;
+                    // 如果用户手动暂停，视为永久关闭
+                    bgmUserClosed = true;
+                    localStorage.setItem('userCloseBgm', '1');
+                    // 清除临时标记
+                    sessionStorage.removeItem('bgmAutoPause');
+                    bgmAutoPaused = false;
+                    updateBgmIcon();
+                } else {
+                    // 用户手动开启，清除所有关闭标记
+                    bgmUserClosed = false;
+                    localStorage.removeItem('userCloseBgm');
+                    sessionStorage.removeItem('bgmAutoPause');
+                    bgmAutoPaused = false;
+                    tryPlayBgm();
+                }
+            }
+
+            // 点击事件
+            bgmToggle.addEventListener('click', toggleBgm);
+
+            // 音频自动播放失败时的处理
+            bgmAudio.addEventListener('play', () => {
+                bgmPlaying = true;
+                updateBgmIcon();
+            });
+            bgmAudio.addEventListener('pause', () => {
+                bgmPlaying = false;
+                updateBgmIcon();
+            });
+            bgmAudio.addEventListener('ended', () => {
+                // 循环播放，无需处理
+            });
+
+            // 初始化：不自动播放，图标显示暂停状态
+            updateBgmIcon();
+
+            // ============================================================
+            // 1. DOM 引用（原有）
             // ============================================================
             const grid = document.getElementById('photoGrid');
             const lightbox = document.getElementById('lightbox');
@@ -905,28 +1169,47 @@
             const swiperWrapper = document.getElementById('swiperWrapper');
             const swiperContainer = document.getElementById('swiperContainer');
             const visitCounter = document.getElementById('visitCounter');
+            const photoCountEl = document.getElementById('photoCount');
+            const liveCountEl = document.getElementById('liveCount');
+            const videoCountEl = document.getElementById('videoCount');
 
             const debugToggle = document.getElementById('debugToggle');
             const passwordModal = document.getElementById('passwordModal');
-            const adminModal = document.getElementById('adminModal');
             const passwordInput = document.getElementById('passwordInput');
             const passwordError = document.getElementById('passwordError');
             const passwordConfirmBtn = document.getElementById('passwordConfirmBtn');
             const passwordCancelBtn = document.getElementById('passwordCancelBtn');
             const passwordCloseBtn = document.getElementById('passwordCloseBtn');
+
+            const adminModal = document.getElementById('adminModal');
             const adminCloseBtn = document.getElementById('adminCloseBtn');
             const adminCancelBtn = document.getElementById('adminCancelBtn');
             const adminSaveBtn = document.getElementById('adminSaveBtn');
             const adminBody = document.getElementById('adminBody');
+            const adminToFansBtn = document.getElementById('adminToFansBtn');
 
-            // 统计元素
-            const photoCountEl = document.getElementById('photoCount');
-            const liveCountEl = document.getElementById('liveCount');
-            const videoCountEl = document.getElementById('videoCount');
+            const fansAdminModal = document.getElementById('fansAdminModal');
+            const fansAdminCloseBtn = document.getElementById('fansAdminCloseBtn');
+            const fansAdminCancelBtn = document.getElementById('fansAdminCancelBtn');
+            const fansAdminAddBtn = document.getElementById('fansAdminAddBtn');
+            const fansAdminBody = document.getElementById('fansAdminBody');
+            const fansToAdminBtn = document.getElementById('fansToAdminBtn');
 
-            // 新增行容器引用
-            const modeRow = document.getElementById('modeRow');
-            const subRow = document.getElementById('subRow');
+            const fansFormModal = document.getElementById('fansFormModal');
+            const fansFormCloseBtn = document.getElementById('fansFormCloseBtn');
+            const fansFormCancelBtn = document.getElementById('fansFormCancelBtn');
+            const fansFormSaveBtn = document.getElementById('fansFormSaveBtn');
+            const fansFormTitle = document.getElementById('fansFormTitle');
+            const fansFormId = document.getElementById('fansFormId');
+            const fansFormType = document.getElementById('fansFormType');
+            const fansFormSrc = document.getElementById('fansFormSrc');
+            const fansFormVideo = document.getElementById('fansFormVideo');
+            const fansFormCreator = document.getElementById('fansFormCreator');
+            const fansFormMessage = document.getElementById('fansFormMessage');
+            const fansFormCategory = document.getElementById('fansFormCategory');
+            const fansFormDate = document.getElementById('fansFormDate');
+            const fansFormFeatured = document.getElementById('fansFormFeatured');
+            const fansFormActive = document.getElementById('fansFormActive');
 
             let swiperInstance = null;
             let currentIndex = 0;
@@ -937,12 +1220,12 @@
             let adminFileList = [];
             const ADMIN_PASSWORD = '2432';
 
-            // ===== 新增：数据源切换 =====
-            let currentSource = 'official'; // 'official' 或 'fans'
-            let fansImages = [];            // 粉丝数据（阶段一为空数组）
+            let currentSource = 'official';
+            let fansImages = [];
+            let fansList = [];
 
             // ============================================================
-            // 2. 加载数据 & 访客计数 & 更新统计
+            // 2. 加载官方数据（原有）
             // ============================================================
             async function loadImages() {
                 try {
@@ -956,7 +1239,7 @@
                     }
                     await fetchPinnedList();
                     applySortAndRender();
-                    updateStats(); // 更新统计
+                    updateStats();
                     console.log('📸 照片墙已加载，图片数量:', rawImages.length);
                 } catch (error) {
                     console.error('加载图片数据失败:', error);
@@ -989,7 +1272,6 @@
                 }
             }
 
-            // ===== 更新素材统计（仅官方） =====
             function updateStats() {
                 let photoCount = 0,
                     liveCount = 0,
@@ -1005,9 +1287,6 @@
                 videoCountEl.textContent = videoCount;
             }
 
-            // ============================================================
-            // 3. 媒体类型
-            // ============================================================
             function getMediaType(item) {
                 if (item.isVideoOnly) return 'video';
                 if (item.video) {
@@ -1023,26 +1302,24 @@
             }
 
             // ============================================================
-            // 4. 排序与渲染（支持数据源切换，并控制行显示）
+            // 3. 排序与渲染（包含 BGM 视频互斥增强）
             // ============================================================
             function applySortAndRender() {
-                // 如果当前是粉丝模式，隐藏模式行和子选项行，渲染粉丝占位
+                const modeRow = document.getElementById('modeRow');
+                const subRow = document.getElementById('subRow');
+
                 if (currentSource === 'fans') {
                     modeRow.style.display = 'none';
                     subRow.style.display = 'none';
                     renderFansMode();
                     return;
                 }
-
-                // 官方模式：显示模式行和子选项行
                 modeRow.style.display = 'flex';
                 subRow.style.display = 'flex';
 
-                // 原有排序逻辑
                 const activeMode = document.querySelector('.sort-btn[data-mode].active');
                 if (!activeMode) return;
                 const mode = activeMode.dataset.mode;
-
                 const subContainer = mode === 'time' ? document.getElementById('timeOptions') : document.getElementById(
                     'typeOptions');
                 const activeSub = subContainer.querySelector('.sort-btn[data-sub].active');
@@ -1050,12 +1327,9 @@
                 const subValue = activeSub.dataset.sub;
 
                 console.log('🔀 模式:', mode, '子选项:', subValue);
-                console.log('📌 当前 pinnedFiles:', pinnedFiles);
 
-                // ---- 提取置顶和非置顶 ----
                 const pinnedItems = [];
                 const unpinnedItems = [];
-
                 rawImages.forEach(item => {
                     const fileName = item.src.split('/').pop();
                     if (pinnedFiles.includes(fileName)) {
@@ -1064,20 +1338,12 @@
                         unpinnedItems.push(item);
                     }
                 });
-
-                console.log(`📌 提取的置顶项数量: ${pinnedItems.length}`);
-                if (pinnedItems.length > 0) {
-                    console.log('📌 置顶项示例:', pinnedItems[0].src);
-                }
-
-                // 置顶项排序（按置顶顺序）
                 pinnedItems.sort((a, b) => {
                     const aName = a.src.split('/').pop();
                     const bName = b.src.split('/').pop();
                     return pinnedFiles.indexOf(aName) - pinnedFiles.indexOf(bName);
                 });
 
-                // ---- 对非置顶项排序 ----
                 if (mode === 'time') {
                     unpinnedItems.sort((a, b) => {
                         const t1 = a.timestamp || 0;
@@ -1085,11 +1351,9 @@
                         return subValue === 'old' ? t1 - t2 : t2 - t1;
                     });
                 } else {
-                    // 类型模式
                     const photos = unpinnedItems.filter(item => getMediaType(item) === 'photo');
                     const lives = unpinnedItems.filter(item => getMediaType(item) === 'live');
                     const videos = unpinnedItems.filter(item => getMediaType(item) === 'video');
-
                     const sortByTime = (arr) => arr.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                     sortByTime(photos);
                     sortByTime(lives);
@@ -1102,57 +1366,45 @@
                     } else if (subValue === 'video') {
                         order.splice(0, 0, order.splice(order.indexOf('video'), 1)[0]);
                     }
-
                     const result = [];
                     order.forEach(key => {
                         if (groups[key] && groups[key].length > 0) {
                             result.push({ type: key, items: groups[key] });
                         }
                     });
-
                     const pinnedGroup = pinnedItems.length > 0 ? { type: 'pinned', items: pinnedItems } : null;
                     renderGridWithSections(mode, subValue, pinnedGroup, result);
                     return;
                 }
-
                 const pinnedGroup = pinnedItems.length > 0 ? { type: 'pinned', items: pinnedItems } : null;
                 renderGridWithSections(mode, subValue, pinnedGroup, unpinnedItems);
             }
 
-            // ============================================================
-            // 5. 粉丝模式渲染（仅占位）
-            // ============================================================
             function renderFansMode() {
                 grid.innerHTML = '';
-                if (fansImages.length === 0) {
+                if (fansList.length === 0) {
                     grid.innerHTML = `
                         <p style="grid-column:1/-1; text-align:center; color:var(--text-secondary); padding:3rem 0; font-size:1.1rem;">
                             ✨ 暂无粉丝作品<br>
                             <span style="font-size:0.85rem; color:var(--text-muted);">敬请期待</span>
                         </p>
                     `;
-                } else {
-                    fansImages.forEach(item => {
-                        const card = createCard(item);
-                        grid.appendChild(card);
-                    });
+                    return;
                 }
-                if (lightbox.classList.contains('active')) {
-                    closeLightbox();
-                }
+                const activeItems = fansList.filter(item => item.isActive !== false);
+                const featured = activeItems.filter(item => item.isFeatured);
+                const normal = activeItems.filter(item => !item.isFeatured);
+                [...featured, ...normal].forEach(item => {
+                    const card = createCard(item);
+                    grid.appendChild(card);
+                });
+                if (lightbox.classList.contains('active')) closeLightbox();
                 IMAGES = [];
             }
 
-            // ============================================================
-            // 6. 渲染网格（带分割线）——官方模式
-            // ============================================================
             function renderGridWithSections(mode, subValue, pinnedGroup, unpinnedData) {
-                console.log('🎨 开始渲染，pinnedGroup:', pinnedGroup);
                 grid.innerHTML = '';
-
-                // ---- 置顶分组 ----
                 if (pinnedGroup && pinnedGroup.items && pinnedGroup.items.length > 0) {
-                    console.log('📌 渲染置顶分组，项数:', pinnedGroup.items.length);
                     const key = 'pinned';
                     if (collapseState[key] === undefined) collapseState[key] = false;
                     const divider = createDivider('📌 置顶', '', key, collapseState[key]);
@@ -1165,12 +1417,8 @@
                         itemsContainer.appendChild(card);
                     });
                     grid.appendChild(itemsContainer);
-                    console.log('✅ 置顶分组已渲染');
-                } else {
-                    console.log('⚠️ 无置顶项（或数据结构不正确），跳过置顶分组');
                 }
 
-                // ---- 非置顶分组 ----
                 if (mode === 'time') {
                     const unpinned = unpinnedData || [];
                     const yearMonthGroups = {};
@@ -1221,11 +1469,7 @@
                     });
                 }
 
-                if (lightbox.classList.contains('active')) {
-                    closeLightbox();
-                }
-
-                // 保存扁平顺序供灯箱使用
+                if (lightbox.classList.contains('active')) closeLightbox();
                 IMAGES = [];
                 const allItems = grid.querySelectorAll('.grid-item');
                 allItems.forEach(el => {
@@ -1243,19 +1487,13 @@
                         }
                     }
                 });
-                if (IMAGES.length === 0) {
-                    IMAGES = [...rawImages];
-                }
+                if (IMAGES.length === 0) IMAGES = [...rawImages];
             }
 
-            // ============================================================
-            // 7. 创建分割线（不变）
-            // ============================================================
             function createDivider(zhText, enText, key, isCollapsed) {
                 const div = document.createElement('div');
                 div.className = 'section-divider';
                 div.dataset.sectionKey = key;
-
                 const labelSpan = document.createElement('span');
                 labelSpan.className = 'label';
                 const zhSpan = document.createElement('span');
@@ -1268,18 +1506,14 @@
                     enSpan.textContent = enText;
                     labelSpan.appendChild(enSpan);
                 }
-
                 const iconSpan = document.createElement('span');
                 iconSpan.className = `toggle-icon${isCollapsed ? ' collapsed' : ''}`;
                 iconSpan.textContent = '▼';
-
                 const lineSpan = document.createElement('span');
                 lineSpan.className = 'line';
-
                 div.appendChild(lineSpan);
                 div.appendChild(labelSpan);
                 div.appendChild(iconSpan);
-
                 div.addEventListener('click', function(e) {
                     e.stopPropagation();
                     const sectionKey = this.dataset.sectionKey;
@@ -1289,12 +1523,11 @@
                     const itemsContainer = grid.querySelector(`.section-items[data-section-key="${sectionKey}"]`);
                     if (itemsContainer) itemsContainer.classList.toggle('collapsed');
                 });
-
                 return div;
             }
 
             // ============================================================
-            // 8. 创建卡片（支持纯视频，与之前相同）
+            // 4. 卡片与灯箱（包含 BGM 视频互斥）
             // ============================================================
             function createCard(item) {
                 const div = document.createElement('div');
@@ -1306,6 +1539,8 @@
                 const wrapper = document.createElement('div');
                 wrapper.className = 'media-wrapper';
 
+                const isFans = item.creatorId !== undefined;
+
                 if (item.isVideoOnly) {
                     const video = document.createElement('video');
                     video.src = item.video;
@@ -1316,6 +1551,13 @@
                     video.setAttribute('aria-hidden', 'true');
                     video.classList.add('visible');
                     wrapper.appendChild(video);
+
+                    // ===== 视频播放事件绑定（BGM 互斥） =====
+                    video.addEventListener('play', () => {
+                        if (!bgmUserClosed && bgmPlaying) {
+                            pauseBgm('video');
+                        }
+                    });
 
                     div.addEventListener('mouseenter', () => {
                         video.play().catch(() => {});
@@ -1358,6 +1600,12 @@
                         video.setAttribute('aria-hidden', 'true');
                         wrapper.appendChild(video);
 
+                        video.addEventListener('play', () => {
+                            if (!bgmUserClosed && bgmPlaying) {
+                                pauseBgm('video');
+                            }
+                        });
+
                         div.addEventListener('mouseenter', () => {
                             video.classList.add('active');
                             video.play().catch(() => {});
@@ -1390,17 +1638,85 @@
                     }
                 }
 
+                // 粉丝作品信息栏与精选角标（不变）
+                if (isFans) {
+                    const infoBar = document.createElement('div');
+                    infoBar.style.cssText = `
+                        position: absolute;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        background: rgba(0,0,0,0.5);
+                        backdrop-filter: blur(4px);
+                        padding: 4px 8px;
+                        color: #fff;
+                        font-size: 0.7rem;
+                        display: flex;
+                        flex-direction: column;
+                        pointer-events: none;
+                        z-index: 2;
+                    `;
+                    const idLine = document.createElement('span');
+                    idLine.textContent = `创作者：${item.creatorId}`;
+                    const msgLine = document.createElement('span');
+                    const msg = item.message || '';
+                    msgLine.textContent = msg.length > 15 ? msg.slice(0, 15) + '...' : msg;
+                    infoBar.appendChild(idLine);
+                    infoBar.appendChild(msgLine);
+                    div.appendChild(infoBar);
+
+                    if (item.isFeatured) {
+                        const badge = document.createElement('div');
+                        badge.textContent = '⭐';
+                        badge.style.cssText = `
+                            position: absolute;
+                            top: 6px;
+                            left: 6px;
+                            background: rgba(0,0,0,0.6);
+                            border-radius: 50%;
+                            width: 28px;
+                            height: 28px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 16px;
+                            z-index: 3;
+                            pointer-events: none;
+                        `;
+                        div.appendChild(badge);
+                    }
+                }
+
                 div.appendChild(wrapper);
 
                 div.addEventListener('click', (e) => {
                     e.stopPropagation();
                     let src = item.isVideoOnly ? item.video : item.src;
-                    const idx = IMAGES.findIndex(i => (i.isVideoOnly ? i.video : i.src) === src);
-                    if (idx !== -1) {
-                        openLightbox(idx);
+                    let idx;
+                    if (isFans) {
+                        const flat = fansList.filter(i => i.isActive !== false);
+                        const featured = flat.filter(i => i.isFeatured);
+                        const normal = flat.filter(i => !i.isFeatured);
+                        const ordered = [...featured, ...normal];
+                        idx = ordered.findIndex(i => i.id === item.id);
                     } else {
-                        const fallbackIdx = rawImages.findIndex(i => (i.isVideoOnly ? i.video : i.src) === src);
-                        if (fallbackIdx !== -1) openLightbox(fallbackIdx);
+                        idx = IMAGES.findIndex(i => (i.isVideoOnly ? i.video : i.src) === src);
+                        if (idx === -1) {
+                            idx = rawImages.findIndex(i => (i.isVideoOnly ? i.video : i.src) === src);
+                        }
+                    }
+                    if (idx !== -1) {
+                        if (isFans) {
+                            const tempImages = fansList.filter(i => i.isActive !== false);
+                            const feat = tempImages.filter(i => i.isFeatured);
+                            const norm = tempImages.filter(i => !i.isFeatured);
+                            const ordered = [...feat, ...norm];
+                            buildLightboxForFans(ordered, idx);
+                            lightbox.classList.add('active');
+                            document.body.style.overflow = 'hidden';
+                        } else {
+                            openLightbox(idx);
+                        }
                     }
                 });
                 div.addEventListener('keydown', (e) => {
@@ -1413,17 +1729,134 @@
                 return div;
             }
 
-            // ============================================================
-            // 9. 灯箱 (Swiper) —— 已添加 Zoom 功能（不变）
-            // ============================================================
-            function openLightbox(index) {
-                console.log('🖱️ openLightbox called, index:', index);
-                if (!IMAGES.length) {
-                    console.warn('IMAGES 为空，无法打开灯箱');
-                    return;
+            // 粉丝灯箱构建（含 BGM 互斥）
+            function buildLightboxForFans(items, initialSlide) {
+                swiperWrapper.innerHTML = '';
+                items.forEach((item) => {
+                    const slide = document.createElement('div');
+                    slide.className = 'swiper-slide';
+                    const zoomContainer = document.createElement('div');
+                    zoomContainer.className = 'swiper-zoom-container';
+                    if (item.video) {
+                        const video = document.createElement('video');
+                        video.src = item.video;
+                        video.poster = item.src;
+                        video.controls = true;
+                        video.muted = true;
+                        video.playsInline = true;
+                        video.preload = 'metadata';
+                        video.setAttribute('playsinline', '');
+                        // BGM 互斥：视频播放时暂停 BGM
+                        video.addEventListener('play', () => {
+                            if (!bgmUserClosed && bgmPlaying) {
+                                pauseBgm('video');
+                            }
+                        });
+                        zoomContainer.appendChild(video);
+                    } else {
+                        const img = document.createElement('img');
+                        img.src = item.src;
+                        img.alt = item.alt || '粉丝作品';
+                        zoomContainer.appendChild(img);
+                    }
+                    slide.appendChild(zoomContainer);
+                    // 底部信息栏
+                    const infoBar = document.createElement('div');
+                    infoBar.style.cssText = `
+                        position: absolute;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        background: rgba(0,0,0,0.6);
+                        backdrop-filter: blur(8px);
+                        padding: 12px 16px;
+                        color: #fff;
+                        font-size: 0.85rem;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                        pointer-events: none;
+                        z-index: 10;
+                    `;
+                    const line1 = document.createElement('div');
+                    line1.innerHTML = `<strong>创作者：</strong>${item.creatorId}`;
+                    const line2 = document.createElement('div');
+                    line2.innerHTML = `<strong>分类：</strong>${item.category || '未分类'}`;
+                    const line3 = document.createElement('div');
+                    line3.innerHTML = `<strong>寄语：</strong>${item.message || '无'}`;
+                    const line4 = document.createElement('div');
+                    line4.innerHTML = `<strong>日期：</strong>${item.date || ''}`;
+                    infoBar.appendChild(line1);
+                    infoBar.appendChild(line2);
+                    infoBar.appendChild(line3);
+                    infoBar.appendChild(line4);
+                    slide.appendChild(infoBar);
+                    swiperWrapper.appendChild(slide);
+                });
+
+                if (swiperInstance) {
+                    swiperInstance.destroy(true, true);
+                    swiperInstance = null;
                 }
+
+                swiperInstance = new Swiper(swiperContainer, {
+                    initialSlide: initialSlide,
+                    slidesPerView: 1,
+                    centeredSlides: true,
+                    effect: 'fade',
+                    fadeEffect: { crossFade: true },
+                    speed: 400,
+                    loop: false,
+                    touchEventsTarget: 'container',
+                    navigation: {
+                        prevEl: prevBtn,
+                        nextEl: nextBtn,
+                    },
+                    zoom: {
+                        maxRatio: 5,
+                        minRatio: 1,
+                        toggle: true
+                    },
+                    observer: true,
+                    observeParents: true,
+                    on: {
+                        slideChangeTransitionEnd: function() {
+                            const idx = this.activeIndex;
+                            counter.textContent = `${idx + 1} / ${items.length}`;
+                            this.slides.forEach((slide, i) => {
+                                const video = slide.querySelector('video');
+                                if (video) {
+                                    if (i === idx) {
+                                        video.play().catch(() => {});
+                                    } else {
+                                        video.pause();
+                                    }
+                                }
+                            });
+                        },
+                        init: function() {
+                            this.navigation.update();
+                            counter.textContent = `${this.activeIndex + 1} / ${items.length}`;
+                            const slide = this.slides[this.activeIndex];
+                            if (slide) {
+                                const video = slide.querySelector('video');
+                                if (video) video.play().catch(() => {});
+                            }
+                        }
+                    }
+                });
+                setTimeout(() => {
+                    if (swiperInstance && swiperInstance.activeIndex !== initialSlide) {
+                        swiperInstance.slideTo(initialSlide, 0);
+                        counter.textContent = `${initialSlide + 1} / ${items.length}`;
+                    }
+                }, 100);
+            }
+
+            // 官方灯箱
+            function openLightbox(index) {
+                if (!IMAGES.length) { console.warn('IMAGES 为空'); return; }
                 currentIndex = Math.min(index, IMAGES.length - 1);
-                console.log('当前索引:', currentIndex, '总数量:', IMAGES.length);
                 buildSwiper(currentIndex);
                 lightbox.classList.add('active');
                 document.body.style.overflow = 'hidden';
@@ -1457,6 +1890,11 @@
                         video.playsInline = true;
                         video.preload = 'metadata';
                         video.setAttribute('playsinline', '');
+                        video.addEventListener('play', () => {
+                            if (!bgmUserClosed && bgmPlaying) {
+                                pauseBgm('video');
+                            }
+                        });
                         zoomContainer.appendChild(video);
                     } else {
                         const img = document.createElement('img');
@@ -1519,7 +1957,6 @@
                         }
                     }
                 });
-
                 setTimeout(() => {
                     if (swiperInstance && swiperInstance.activeIndex !== initialSlide) {
                         swiperInstance.slideTo(initialSlide, 0);
@@ -1533,7 +1970,7 @@
             }
 
             // ============================================================
-            // 10. 键盘事件
+            // 5. 键盘事件
             // ============================================================
             document.addEventListener('keydown', (e) => {
                 if (!lightbox.classList.contains('active')) return;
@@ -1554,14 +1991,13 @@
             });
 
             // ============================================================
-            // 11. UI 事件绑定
+            // 6. UI 事件绑定（排序、切换等）
             // ============================================================
             closeBtn.addEventListener('click', closeLightbox);
             lightbox.addEventListener('click', (e) => {
                 if (e.target === lightbox) closeLightbox();
             });
 
-            // ---- 模式切换（时间轴/类型） ----
             document.querySelectorAll('.sort-btn[data-mode]').forEach(btn => {
                 btn.addEventListener('click', function() {
                     document.querySelectorAll('.sort-btn[data-mode]').forEach(b => b.classList.remove('active'));
@@ -1574,7 +2010,6 @@
                 });
             });
 
-            // ---- 子选项点击（方向/分组） ----
             document.querySelectorAll('.sub-options .sort-btn[data-sub]').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const parent = this.closest('.sub-options');
@@ -1585,28 +2020,22 @@
                 });
             });
 
-            // ---- 新增：数据源切换（官方素材/粉丝创作） ----
             document.querySelectorAll('.sort-btn[data-source]').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    // 切换 active 类
                     document.querySelectorAll('.sort-btn[data-source]').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
-
-                    // 更新当前数据源
                     currentSource = this.dataset.source;
-
-                    // 控制模式行和子选项行的显示
+                    const modeRow = document.getElementById('modeRow');
+                    const subRow = document.getElementById('subRow');
                     if (currentSource === 'official') {
                         modeRow.style.display = 'flex';
                         subRow.style.display = 'flex';
-                        // 恢复子选项显示状态
                         const activeMode = document.querySelector('.sort-btn[data-mode].active');
                         if (activeMode) {
                             const mode = activeMode.dataset.mode;
                             document.getElementById('timeOptions').classList.toggle('show', mode === 'time');
                             document.getElementById('typeOptions').classList.toggle('show', mode === 'type');
                         } else {
-                            // 默认时间轴
                             document.querySelector('.sort-btn[data-mode="time"]').classList.add('active');
                             document.getElementById('timeOptions').classList.add('show');
                             document.getElementById('typeOptions').classList.remove('show');
@@ -1615,14 +2044,12 @@
                         modeRow.style.display = 'none';
                         subRow.style.display = 'none';
                     }
-
-                    // 重新渲染
                     applySortAndRender();
                 });
             });
 
             // ============================================================
-            // 12. 置顶管理功能（不变）
+            // 7. 置顶管理
             // ============================================================
             debugToggle.addEventListener('click', () => {
                 passwordModal.classList.add('active');
@@ -1687,7 +2114,6 @@
 
                     const thumbContainer = document.createElement('div');
                     thumbContainer.className = 'thumbnail';
-
                     if (item.isVideoOnly) {
                         const video = document.createElement('video');
                         video.src = item.video;
@@ -1704,7 +2130,6 @@
                         img.loading = 'lazy';
                         thumbContainer.appendChild(img);
                     }
-
                     div.appendChild(thumbContainer);
 
                     const nameSpan = document.createElement('span');
@@ -1800,8 +2225,287 @@
                 }
             });
 
+            adminToFansBtn.addEventListener('click', () => {
+                closeAdminModal();
+                fansAdminModal.classList.add('active');
+                loadFansList();
+            });
+
+            fansToAdminBtn.addEventListener('click', () => {
+                fansAdminModal.classList.remove('active');
+                adminModal.classList.add('active');
+            });
+
             // ============================================================
-            // 13. 启动
+            // 8. 粉丝作品管理
+            // ============================================================
+            async function loadFansList() {
+                try {
+                    const res = await fetch('/api/fans/list');
+                    const result = await res.json();
+                    console.log('📡 粉丝列表API返回:', result);
+                    if (result.success) {
+                        fansList = result.data || [];
+                        renderFansAdminList();
+                    } else {
+                        alert('加载粉丝作品失败：' + (result.error || '未知错误'));
+                        console.error('❌ 粉丝列表API错误:', result);
+                    }
+                } catch (error) {
+                    console.error('❌ 加载粉丝作品网络错误:', error);
+                    alert('加载粉丝作品失败，请检查网络');
+                }
+            }
+
+            function renderFansAdminList() {
+                fansAdminBody.innerHTML = '';
+                if (fansList.length === 0) {
+                    fansAdminBody.innerHTML = `
+                        <p style="text-align:center; color:var(--text-muted); padding:2rem 0;">
+                            暂无粉丝作品，点击「新增作品」添加
+                        </p>
+                    `;
+                    return;
+                }
+                const sorted = [...fansList].reverse();
+                sorted.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'file-item';
+                    div.style.cursor = 'default';
+
+                    const thumb = document.createElement('div');
+                    thumb.className = 'thumbnail';
+                    const img = document.createElement('img');
+                    img.src = item.src;
+                    img.alt = item.id;
+                    img.loading = 'lazy';
+                    thumb.appendChild(img);
+                    div.appendChild(thumb);
+
+                    const info = document.createElement('span');
+                    info.className = 'file-name';
+                    info.style.fontSize = '0.8rem';
+                    info.innerHTML = `
+                        <strong>${item.creatorId}</strong>
+                        <span style="color:var(--text-muted); margin-left:0.5rem;">${item.category}</span>
+                        <span style="color:var(--text-muted); margin-left:0.5rem; font-size:0.7rem;">${item.date}</span>
+                        ${item.isFeatured ? '⭐' : ''}
+                        ${!item.isActive ? '🚫' : ''}
+                    `;
+                    div.appendChild(info);
+
+                    const actions = document.createElement('div');
+                    actions.style.cssText = 'display:flex; gap:0.3rem; flex-shrink:0;';
+
+                    const featBtn = document.createElement('button');
+                    featBtn.textContent = item.isFeatured ? '⭐' : '☆';
+                    featBtn.style.cssText =
+                        `background:none; border:none; cursor:pointer; font-size:1.1rem; color:${item.isFeatured ? '#f59e0b' : 'var(--text-muted)'};`;
+                    featBtn.title = '切换精选';
+                    featBtn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        await toggleFansFeatured(item.id);
+                    });
+                    actions.appendChild(featBtn);
+
+                    const activeBtn = document.createElement('button');
+                    activeBtn.textContent = item.isActive ? '✅' : '🚫';
+                    activeBtn.style.cssText = 'background:none; border:none; cursor:pointer; font-size:1.1rem;';
+                    activeBtn.title = '切换上下架';
+                    activeBtn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        await toggleFansActive(item.id);
+                    });
+                    actions.appendChild(activeBtn);
+
+                    const editBtn = document.createElement('button');
+                    editBtn.textContent = '✏️';
+                    editBtn.style.cssText = 'background:none; border:none; cursor:pointer; font-size:1.1rem;';
+                    editBtn.title = '编辑';
+                    editBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openFansForm(item);
+                    });
+                    actions.appendChild(editBtn);
+
+                    const delBtn = document.createElement('button');
+                    delBtn.textContent = '🗑️';
+                    delBtn.style.cssText = 'background:none; border:none; cursor:pointer; font-size:1.1rem; color:#e0786a;';
+                    delBtn.title = '删除';
+                    delBtn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        if (confirm(`确定要删除 "${item.creatorId}" 的作品吗？`)) {
+                            await deleteFansItem(item.id);
+                        }
+                    });
+                    actions.appendChild(delBtn);
+
+                    div.appendChild(actions);
+                    fansAdminBody.appendChild(div);
+                });
+            }
+
+            async function toggleFansFeatured(id) {
+                try {
+                    const res = await fetch('/api/fans/toggle-featured', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id })
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        await loadFansList();
+                    } else {
+                        alert('操作失败：' + (result.error || '未知错误'));
+                    }
+                } catch (error) {
+                    console.error('切换精选失败:', error);
+                    alert('网络错误');
+                }
+            }
+
+            async function toggleFansActive(id) {
+                try {
+                    const res = await fetch('/api/fans/toggle-active', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id })
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        await loadFansList();
+                    } else {
+                        alert('操作失败：' + (result.error || '未知错误'));
+                    }
+                } catch (error) {
+                    console.error('切换上下架失败:', error);
+                    alert('网络错误');
+                }
+            }
+
+            async function deleteFansItem(id) {
+                try {
+                    const res = await fetch('/api/fans/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id })
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        await loadFansList();
+                    } else {
+                        alert('删除失败：' + (result.error || '未知错误'));
+                    }
+                } catch (error) {
+                    console.error('删除失败:', error);
+                    alert('网络错误');
+                }
+            }
+
+            function openFansForm(item) {
+                if (item) {
+                    fansFormTitle.textContent = '✏️ 编辑粉丝作品';
+                    fansFormId.value = item.id;
+                    fansFormType.value = item.type || 'photo';
+                    fansFormSrc.value = item.src || '';
+                    fansFormVideo.value = item.video || '';
+                    fansFormCreator.value = item.creatorId || '';
+                    fansFormMessage.value = item.message || '';
+                    fansFormCategory.value = item.category || '手绘插画';
+                    fansFormDate.value = item.date || '';
+                    fansFormFeatured.checked = item.isFeatured || false;
+                    fansFormActive.checked = item.isActive !== false;
+                } else {
+                    fansFormTitle.textContent = '➕ 新增粉丝作品';
+                    fansFormId.value = '';
+                    fansFormType.value = 'photo';
+                    fansFormSrc.value = '';
+                    fansFormVideo.value = '';
+                    fansFormCreator.value = '';
+                    fansFormMessage.value = '';
+                    fansFormCategory.value = '手绘插画';
+                    fansFormDate.value = new Date().toISOString().slice(0, 10);
+                    fansFormFeatured.checked = false;
+                    fansFormActive.checked = true;
+                }
+                fansFormModal.classList.add('active');
+            }
+
+            function closeFansForm() {
+                fansFormModal.classList.remove('active');
+            }
+
+            async function saveFansForm() {
+                const id = fansFormId.value;
+                const data = {
+                    type: fansFormType.value,
+                    src: fansFormSrc.value.trim(),
+                    video: fansFormVideo.value.trim(),
+                    creatorId: fansFormCreator.value.trim(),
+                    message: fansFormMessage.value.trim(),
+                    category: fansFormCategory.value,
+                    date: fansFormDate.value,
+                    isFeatured: fansFormFeatured.checked,
+                    isActive: fansFormActive.checked,
+                };
+                if (!data.src || !data.creatorId || !data.category) {
+                    alert('请填写完整信息（图片URL、粉丝ID、分类为必填）');
+                    return;
+                }
+                const url = id ? '/api/fans/edit' : '/api/fans/add';
+                if (id) data.id = id;
+
+                try {
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        closeFansForm();
+                        await loadFansList();
+                    } else {
+                        alert('保存失败：' + (result.error || '未知错误'));
+                    }
+                } catch (error) {
+                    console.error('保存失败:', error);
+                    alert('网络错误');
+                }
+            }
+
+            fansAdminAddBtn.addEventListener('click', () => {
+                openFansForm(null);
+            });
+
+            fansAdminCloseBtn.addEventListener('click', () => {
+                fansAdminModal.classList.remove('active');
+            });
+            fansAdminCancelBtn.addEventListener('click', () => {
+                fansAdminModal.classList.remove('active');
+            });
+            fansAdminModal.addEventListener('click', (e) => {
+                if (e.target === fansAdminModal) fansAdminModal.classList.remove('active');
+            });
+
+            fansFormCloseBtn.addEventListener('click', closeFansForm);
+            fansFormCancelBtn.addEventListener('click', closeFansForm);
+            fansFormModal.addEventListener('click', (e) => {
+                if (e.target === fansFormModal) closeFansForm();
+            });
+            fansFormSaveBtn.addEventListener('click', saveFansForm);
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && fansFormModal.classList.contains('active')) {
+                    if (e.target.tagName !== 'TEXTAREA') {
+                        e.preventDefault();
+                        saveFansForm();
+                    }
+                }
+            });
+
+            // ============================================================
+            // 9. 启动
             // ============================================================
             loadImages();
             updateVisitCount();

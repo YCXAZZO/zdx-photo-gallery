@@ -802,14 +802,14 @@
             </a>
         </div>
 
-        <!-- ===== 非商务说明 ===== -->
         <div style="
+            /* background: rgba(255,0,0,0.2);   临时添加，观察容器范围 */
             text-align: center;
             margin: 1.5rem auto 0;
-            display: table;              /* 替代 width: fit-content */
+            display: table;
             font-size: 1rem;
             color: var(--text-muted);
-            letter-spacing: 0.5px;
+            /* letter-spacing: 0.5px;   ← 删除这一行 */
         ">
             「仅展示非商务内容」
         </div>
@@ -963,7 +963,7 @@
                     const res = await fetch('/api/visit');
                     if (!res.ok) throw new Error('获取访客数失败');
                     const data = await res.json();
-                    visitCounter.textContent = `访问数：${data.count}`;
+                    visitCounter.textContent = `访问数：${data.count}👀`;
                 } catch (error) {
                     console.warn('访客计数失败:', error);
                     visitCounter.textContent = '访问数：--';

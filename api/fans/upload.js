@@ -14,27 +14,32 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    try {
-        const form = formidable({
-            maxFileSize: 4 * 1024 * 1024, // 4MB
-            keepExtensions: true,
-        });
+    const form = formidable({
+        maxFileSize: 4 * 1024 * 1024,
+        keepExtensions: true,
+    });
 
-        const [fields, files] = await form.parse(req);
+    form.parse(req, async (err, fields, files) => {
+        if (err) {
+            console.error('Form parse error:', err);
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(413).json({ error: '文件大小超过4MB限制' });
+            }
+            return res.status(500).json({ error: 'Form parse error: ' + err.message });
+        }
 
         // 验证密码
         const adminPassword = process.env.ADMIN_PASSWORD || '2432';
-        const password = fields.password ? fields.password[0] : '';
-        if (password !== adminPassword) {
+        if (fields.password !== adminPassword) {
             return res.status(403).json({ error: 'Invalid password' });
         }
 
-        const file = files.file ? files.file[0] : undefined;
+        const file = files.file;
         if (!file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        // 检查 R2 环境变量
+        // 检查环境变量
         const {
             R2_ACCOUNT_ID,
             R2_ACCESS_KEY_ID,
@@ -64,20 +69,18 @@ export default async function handler(req, res) {
 
         const fileStream = fs.createReadStream(file.filepath);
 
-        await s3Client.send(new PutObjectCommand({
-            Bucket: R2_BUCKET_NAME,
-            Key: key,
-            Body: fileStream,
-            ContentType: file.mimetype || 'application/octet-stream',
-        }));
-
-        const publicUrl = `${R2_PUBLIC_URL}/${key}`;
-        res.status(200).json({ success: true, url: publicUrl, key });
-    } catch (error) {
-        console.error('Upload error:', error);
-        if (error.code === 'LIMIT_FILE_SIZE') {
-            return res.status(413).json({ error: '文件大小超过4MB限制' });
+        try {
+            await s3Client.send(new PutObjectCommand({
+                Bucket: R2_BUCKET_NAME,
+                Key: key,
+                Body: fileStream,
+                ContentType: file.mimetype || 'application/octet-stream',
+            }));
+            const publicUrl = `${R2_PUBLIC_URL}/${key}`;
+            res.status(200).json({ success: true, url: publicUrl, key });
+        } catch (error) {
+            console.error('Upload to R2 failed:', error);
+            res.status(500).json({ error: 'Upload to R2 failed: ' + error.message });
         }
-        res.status(500).json({ error: 'Upload failed: ' + error.message });
-    }
+    });
 }

@@ -1,12 +1,6 @@
 {
-  "name": "daisy-photo-wall",
-  "version": "1.0.0",
-  "scripts": {
-    "build": "node build.js"
-  },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.600.0",
-    "redis": "^4.6.0"
-  },
-  "type": "module"
+    "formidable": "^3.5.1"
+  }
 }

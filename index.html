@@ -1655,29 +1655,25 @@
                     infoBar.appendChild(msgLine);
                     div.appendChild(infoBar);
 
-                    // 精选角标
                     if (item.isFeatured) {
                         const badge = document.createElement('div');
                         badge.textContent = '⭐ 精选';
-                        badge.style.cssText = `
-                        position: absolute;
-                        top: 8px;
-                        left: 8px;
-                        background: rgba(0, 0, 0, 0.55);
-                        backdrop-filter: blur(4px);
-                        border-radius: 6px;
-                        padding: 2px 10px;
-                        color: #fff;
-                        font-size: 12px;
-                        font-weight: 500;
-                        letter-spacing: 0.5px;
-                        z-index: 3;
-                        pointer-events: none;
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-                    `;
-                    div.appendChild(badge);
+                        badge.style.position = 'absolute';
+                        badge.style.top = '8px';
+                        badge.style.left = '8px';
+                        badge.style.background = 'rgba(0, 0, 0, 0.55)';
+                        badge.style.backdropFilter = 'blur(4px)';
+                        badge.style.borderRadius = '6px';
+                        badge.style.padding = '2px 10px';
+                        badge.style.color = '#fff';
+                        badge.style.fontSize = '12px';
+                        badge.style.fontWeight = '500';
+                        badge.style.letterSpacing = '0.5px';
+                        badge.style.zIndex = '3';
+                        badge.style.pointerEvents = 'none';
+                        badge.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
+                        div.appendChild(badge);
                     }
-                }
 
                 div.appendChild(wrapper);
 

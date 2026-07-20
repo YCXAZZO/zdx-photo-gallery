@@ -54,7 +54,6 @@ async function listAllObjects() {
     return objects;
 }
 
-// ===== 从文件名中提取 YY-MM-DD，返回时间戳 =====
 function getTimestampFromFileName(fileName) {
     const match = fileName.match(/(\d{2})-(\d{2})-(\d{2})/);
     if (match) {
@@ -87,6 +86,9 @@ async function main() {
     const videoObjects = [];
 
     objects.forEach(obj => {
+        // ===== 新增：跳过 fans/ 目录下的所有文件 =====
+        if (obj.Key.startsWith('fans/')) return;
+
         const ext = path.extname(obj.Key).toLowerCase();
         if (imageExtensions.includes(ext)) {
             imageObjects.push(obj);
@@ -98,9 +100,8 @@ async function main() {
     console.log(`📸 找到图片 ${imageObjects.length} 个，视频 ${videoObjects.length} 个`);
 
     const imageList = [];
-    const usedVideoKeys = new Set(); // 记录已被配对的视频
+    const usedVideoKeys = new Set();
 
-    // 处理图片（含 Live Photo）
     imageObjects.forEach(imgObj => {
         const imgKey = imgObj.Key;
         const baseName = path.basename(imgKey, path.extname(imgKey));
@@ -128,9 +129,9 @@ async function main() {
         imageList.push(item);
     });
 
-    // 处理未被配对的视频（纯视频文件）
+    // 处理纯视频（未配对的视频）
     videoObjects.forEach(vObj => {
-        if (usedVideoKeys.has(vObj.Key)) return; // 已配对的跳过
+        if (usedVideoKeys.has(vObj.Key)) return;
         const vKey = vObj.Key;
         const baseName = path.basename(vKey, path.extname(vKey));
         const fileName = path.basename(vKey);
@@ -141,15 +142,14 @@ async function main() {
         }
         const url = `${R2_PUBLIC_URL}/${vKey}`;
         imageList.push({
-            src: url,                     // 用于灯箱和备用
-            video: url,                   // 实际视频源
+            src: url,
+            video: url,
             alt: `黛溪 · ${baseName}`,
             timestamp: timestamp,
-            isVideoOnly: true,            // 标记纯视频
+            isVideoOnly: true,
         });
     });
 
-    // 按时间排序
     if (SORT_ORDER.toLowerCase() === 'desc') {
         imageList.sort((a, b) => b.timestamp - a.timestamp);
         console.log('⏱️ 排序方向：最新在前 (desc)');

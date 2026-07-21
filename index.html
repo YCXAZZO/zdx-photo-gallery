@@ -6,6 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>黛溪的照片墙｜β内测</title>
 
+    <!-- ===== 预连接与 DNS 预解析 ===== -->
+    <link rel="preconnect" href="https://img.ycxazzo.top" />
+    <link rel="dns-prefetch" href="https://img.ycxazzo.top" />
+
+    <!-- ===== 预加载背景音乐 ===== -->
+    <link rel="preload" href="https://img.ycxazzo.top/music/BGM.mp3" as="audio" />
+
     <!-- ===== 字体 ===== -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -366,6 +373,12 @@
             top: 0;
             left: 0;
         }
+
+        /* ===== 图片占位背景色 ===== */
+        .grid-item .media-wrapper img {
+            background-color: #e8e0dc;
+        }
+
         .grid-item .media-wrapper video {
             opacity: 0;
             transition: opacity 0.3s;
@@ -1553,6 +1566,7 @@
 
             // ============================================================
             // 5. 卡片与灯箱（包含精选标签）
+            // 优化：视频 preload 改为 none
             // ============================================================
             function createCard(item) {
                 const div = document.createElement('div');
@@ -1572,7 +1586,7 @@
                     video.muted = true;
                     video.playsInline = true;
                     video.loop = true;
-                    video.preload = 'metadata';
+                    video.preload = 'none'; // 优化：改为 none，减少初始加载
                     video.setAttribute('aria-hidden', 'true');
                     video.classList.add('visible');
                     wrapper.appendChild(video);
@@ -1620,7 +1634,7 @@
                         video.muted = true;
                         video.playsInline = true;
                         video.loop = true;
-                        video.preload = 'metadata';
+                        video.preload = 'none'; // 优化：改为 none，减少初始加载
                         video.setAttribute('aria-hidden', 'true');
                         wrapper.appendChild(video);
 

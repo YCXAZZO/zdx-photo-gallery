@@ -82,12 +82,17 @@ async function main() {
         return;
     }
 
+    // ===== 定义需要排除的目录前缀（可扩展） =====
+    const excludedPrefixes = ['fans/', 'background/'];
+
     const imageObjects = [];
     const videoObjects = [];
 
     objects.forEach(obj => {
-        // ===== 新增：跳过 fans/ 目录下的所有文件 =====
-        if (obj.Key.startsWith('fans/')) return;
+        // 如果文件路径以排除列表中的任一前缀开头，则跳过
+        if (excludedPrefixes.some(prefix => obj.Key.startsWith(prefix))) {
+            return;
+        }
 
         const ext = path.extname(obj.Key).toLowerCase();
         if (imageExtensions.includes(ext)) {

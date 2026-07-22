@@ -82,18 +82,16 @@ async function main() {
         return;
     }
 
-    // ===== 定义需要排除的目录前缀（可扩展） =====
+    // ===== 定义需要排除的目录前缀 =====
     const excludedPrefixes = ['fans/', 'background/'];
 
     const imageObjects = [];
     const videoObjects = [];
 
     objects.forEach(obj => {
-        // 如果文件路径以排除列表中的任一前缀开头，则跳过
         if (excludedPrefixes.some(prefix => obj.Key.startsWith(prefix))) {
             return;
         }
-
         const ext = path.extname(obj.Key).toLowerCase();
         if (imageExtensions.includes(ext)) {
             imageObjects.push(obj);
@@ -145,14 +143,23 @@ async function main() {
             timestamp = vObj.LastModified.getTime();
             console.warn(`⚠️ 无法从文件名 "${fileName}" 解析日期，回退到 LastModified`);
         }
+
+        // ===== 新增：检查是否存在同名封面 =====
+        const posterKey = vKey.replace(/\.(mp4|mov|m4v)$/, '-cover.jpg');
+        const hasPoster = objects.some(obj => obj.Key === posterKey);
+
         const url = `${R2_PUBLIC_URL}/${vKey}`;
-        imageList.push({
+        const item = {
             src: url,
             video: url,
             alt: `黛溪 · ${baseName}`,
             timestamp: timestamp,
             isVideoOnly: true,
-        });
+        };
+        if (hasPoster) {
+            item.poster = `${R2_PUBLIC_URL}/${posterKey}`;
+        }
+        imageList.push(item);
     });
 
     if (SORT_ORDER.toLowerCase() === 'desc') {

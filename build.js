@@ -82,20 +82,20 @@ async function main() {
         return;
     }
 
-    // ===== 定义需要排除的目录前缀（可扩展） =====
     const excludedPrefixes = ['fans/', 'background/'];
 
     const imageObjects = [];
     const videoObjects = [];
 
-    // ===== 第一轮遍历：过滤并分类 =====
     objects.forEach(obj => {
         // 1. 排除目录
         if (excludedPrefixes.some(prefix => obj.Key.startsWith(prefix))) {
             return;
         }
-        // 2. 排除封面图（-cover.jpg）
-        if (obj.Key.includes('-cover.jpg')) {
+
+        // 2. 排除封面图（支持 -cover.jpg, -cover.png, -cover.webp 等）
+        const fileName = path.basename(obj.Key);
+        if (fileName.includes('-cover.') && imageExtensions.some(ext => fileName.endsWith(ext))) {
             return;
         }
 
@@ -112,7 +112,6 @@ async function main() {
     const imageList = [];
     const usedVideoKeys = new Set();
 
-    // 处理图片（含 Live Photo）
     imageObjects.forEach(imgObj => {
         const imgKey = imgObj.Key;
         const baseName = path.basename(imgKey, path.extname(imgKey));
@@ -140,7 +139,7 @@ async function main() {
         imageList.push(item);
     });
 
-    // 处理纯视频（未配对的视频）
+    // 处理纯视频
     videoObjects.forEach(vObj => {
         if (usedVideoKeys.has(vObj.Key)) return;
         const vKey = vObj.Key;
@@ -152,9 +151,9 @@ async function main() {
             console.warn(`⚠️ 无法从文件名 "${fileName}" 解析日期，回退到 LastModified`);
         }
 
-        // ===== 检查是否存在同名封面图 =====
-        const posterKey = vKey.replace(/\.(mp4|mov|m4v)$/, '-cover.jpg');
-        const hasPoster = objects.some(obj => obj.Key === posterKey);
+        // ===== 查找封面：支持 -cover.jpg, -cover.png, -cover.webp =====
+        const possiblePosters = imageExtensions.map(ext => `${baseName}-cover${ext}`);
+        const posterKey = possiblePosters.find(p => objects.some(obj => obj.Key === p));
 
         const url = `${R2_PUBLIC_URL}/${vKey}`;
         const item = {
@@ -164,13 +163,12 @@ async function main() {
             timestamp: timestamp,
             isVideoOnly: true,
         };
-        if (hasPoster) {
+        if (posterKey) {
             item.poster = `${R2_PUBLIC_URL}/${posterKey}`;
         }
         imageList.push(item);
     });
 
-    // 排序
     if (SORT_ORDER.toLowerCase() === 'desc') {
         imageList.sort((a, b) => b.timestamp - a.timestamp);
         console.log('⏱️ 排序方向：最新在前 (desc)');

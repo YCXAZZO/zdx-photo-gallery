@@ -112,7 +112,6 @@ async function main() {
     const imageList = [];
     const usedVideoKeys = new Set();
 
-    // 处理图片（含 Live Photo）
     imageObjects.forEach(imgObj => {
         const imgKey = imgObj.Key;
         const baseName = path.basename(imgKey, path.extname(imgKey));
@@ -145,6 +144,7 @@ async function main() {
         if (usedVideoKeys.has(vObj.Key)) return;
         const vKey = vObj.Key;
         const baseName = path.basename(vKey, path.extname(vKey));
+        const dirName = path.dirname(vKey);
         const fileName = path.basename(vKey);
         let timestamp = getTimestampFromFileName(fileName);
         if (timestamp === null) {
@@ -152,8 +152,8 @@ async function main() {
             console.warn(`⚠️ 无法从文件名 "${fileName}" 解析日期，回退到 LastModified`);
         }
 
-        // ===== 查找封面：支持 -cover.jpg, -cover.png, -cover.webp =====
-        const possiblePosters = imageExtensions.map(ext => `${baseName}-cover${ext}`);
+        // ===== 查找封面：在相同目录下查找 -cover + 扩展名 =====
+        const possiblePosters = imageExtensions.map(ext => `${dirName}/${baseName}-cover${ext}`);
         const posterKey = possiblePosters.find(p => objects.some(obj => obj.Key === p));
 
         const url = `${R2_PUBLIC_URL}/${vKey}`;

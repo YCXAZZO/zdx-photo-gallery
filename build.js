@@ -112,6 +112,7 @@ async function main() {
     const imageList = [];
     const usedVideoKeys = new Set();
 
+    // 处理图片（含 Live Photo）
     imageObjects.forEach(imgObj => {
         const imgKey = imgObj.Key;
         const baseName = path.basename(imgKey, path.extname(imgKey));
@@ -139,7 +140,7 @@ async function main() {
         imageList.push(item);
     });
 
-    // 处理纯视频
+    // 处理纯视频（未配对的视频）
     videoObjects.forEach(vObj => {
         if (usedVideoKeys.has(vObj.Key)) return;
         const vKey = vObj.Key;

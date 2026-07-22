@@ -1162,6 +1162,12 @@
                             <option value="视频二创">🎬 视频二创</option>
                         </select>
                     </div>
+                    <!-- ===== 新增：封面图 URL（可选） ===== -->
+                    <div>
+                        <label style="font-weight:500; font-size:0.9rem; color:var(--text-secondary);">封面图 URL（选填，仅视频生效）</label>
+                        <input type="text" id="fansFormPoster" placeholder="https://img.ycxazzo.top/fans/xxx-cover.jpg"
+                            style="width:100%; padding:0.6rem; border-radius:30px; border:1px solid var(--border-divider); background:var(--bg-card); color:var(--text-primary); font-family:inherit;" />
+                    </div>
                     <div>
                         <label style="font-weight:500; font-size:0.9rem; color:var(--text-secondary);">投稿日期</label>
                         <input type="date" id="fansFormDate"
@@ -1322,6 +1328,8 @@
             const fansFormType = document.getElementById('fansFormType');
             const fansFormSrc = document.getElementById('fansFormSrc');
             const fansFormVideo = document.getElementById('fansFormVideo');
+            // 新增 poster 元素
+            const fansFormPoster = document.getElementById('fansFormPoster');
             const fansFormCreator = document.getElementById('fansFormCreator');
             const fansFormMessage = document.getElementById('fansFormMessage');
             const fansFormCategory = document.getElementById('fansFormCategory');
@@ -1690,8 +1698,7 @@
             }
 
             // ============================================================
-            // 5. 卡片与灯箱（包含精选标签）
-            // 优化：视频 preload 改为 none
+            // 5. 卡片与灯箱（包含精选标签 + poster 支持）
             // ============================================================
             function createCard(item) {
                 const div = document.createElement('div');
@@ -1711,9 +1718,17 @@
                     video.muted = true;
                     video.playsInline = true;
                     video.loop = true;
-                    video.preload = 'none'; // 优化：改为 none，减少初始加载
+                    video.preload = 'metadata';
                     video.setAttribute('aria-hidden', 'true');
                     video.classList.add('visible');
+
+                    // ===== 优先使用 poster，否则调用 load 显示第一帧 =====
+                    if (item.poster) {
+                        video.poster = item.poster;
+                    } else {
+                        video.load();
+                    }
+
                     wrapper.appendChild(video);
 
                     video.addEventListener('play', () => {
@@ -1722,6 +1737,7 @@
                         }
                     });
 
+                    // 桌面悬停
                     div.addEventListener('mouseenter', () => {
                         video.play().catch(() => { });
                     });
@@ -1730,6 +1746,7 @@
                         video.currentTime = 0;
                     });
 
+                    // 移动端长按
                     let touchTimer = null;
                     div.addEventListener('touchstart', () => {
                         touchTimer = setTimeout(() => {
@@ -1759,7 +1776,7 @@
                         video.muted = true;
                         video.playsInline = true;
                         video.loop = true;
-                        video.preload = 'none'; // 优化：改为 none，减少初始加载
+                        video.preload = 'none';
                         video.setAttribute('aria-hidden', 'true');
                         wrapper.appendChild(video);
 
@@ -1903,7 +1920,7 @@
                     if (item.video) {
                         const video = document.createElement('video');
                         video.src = item.video;
-                        video.poster = item.src;
+                        video.poster = item.poster || item.src; // 优先使用 poster
                         video.controls = true;
                         video.muted = true;
                         video.playsInline = true;
@@ -2044,7 +2061,7 @@
                     if (item.video) {
                         const video = document.createElement('video');
                         video.src = item.video;
-                        video.poster = item.isVideoOnly ? '' : item.src;
+                        video.poster = item.poster || (item.isVideoOnly ? '' : item.src);
                         video.controls = true;
                         video.muted = true;
                         video.playsInline = true;
@@ -2661,6 +2678,7 @@
                     fansFormType.value = item.type || 'photo';
                     fansFormSrc.value = item.src || '';
                     fansFormVideo.value = item.video || '';
+                    fansFormPoster.value = item.poster || '';  // 填充 poster
                     fansFormCreator.value = item.creatorId || '';
                     fansFormMessage.value = item.message || '';
                     fansFormCategory.value = item.category || '手绘插画';
@@ -2673,6 +2691,7 @@
                     fansFormType.value = 'photo';
                     fansFormSrc.value = '';
                     fansFormVideo.value = '';
+                    fansFormPoster.value = '';
                     fansFormCreator.value = '';
                     fansFormMessage.value = '';
                     fansFormCategory.value = '手绘插画';
@@ -2693,6 +2712,7 @@
                     type: fansFormType.value,
                     src: fansFormSrc.value.trim(),
                     video: fansFormVideo.value.trim(),
+                    poster: fansFormPoster.value.trim(), // 新增
                     creatorId: fansFormCreator.value.trim(),
                     message: fansFormMessage.value.trim(),
                     category: fansFormCategory.value,

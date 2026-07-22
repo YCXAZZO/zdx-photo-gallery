@@ -82,36 +82,37 @@ async function main() {
         return;
     }
 
-    // ===== 定义需要排除的目录前缀 =====
+    // ===== 定义需要排除的目录前缀（可扩展） =====
     const excludedPrefixes = ['fans/', 'background/'];
 
     const imageObjects = [];
     const videoObjects = [];
 
-objects.forEach(obj => {
-    // ===== 先执行所有排除 =====
-    if (excludedPrefixes.some(prefix => obj.Key.startsWith(prefix))) {
-        return;
-    }
-    // 排除封面图（-cover.jpg）
-    if (obj.Key.includes('-cover.jpg')) {
-        return;
-    }
+    // ===== 第一轮遍历：过滤并分类 =====
+    objects.forEach(obj => {
+        // 1. 排除目录
+        if (excludedPrefixes.some(prefix => obj.Key.startsWith(prefix))) {
+            return;
+        }
+        // 2. 排除封面图（-cover.jpg）
+        if (obj.Key.includes('-cover.jpg')) {
+            return;
+        }
 
-    // ===== 再分类 =====
-    const ext = path.extname(obj.Key).toLowerCase();
-    if (imageExtensions.includes(ext)) {
-        imageObjects.push(obj);
-    } else if (videoExtensions.includes(ext)) {
-        videoObjects.push(obj);
-    }
-});
+        const ext = path.extname(obj.Key).toLowerCase();
+        if (imageExtensions.includes(ext)) {
+            imageObjects.push(obj);
+        } else if (videoExtensions.includes(ext)) {
+            videoObjects.push(obj);
+        }
+    });
 
     console.log(`📸 找到图片 ${imageObjects.length} 个，视频 ${videoObjects.length} 个`);
 
     const imageList = [];
     const usedVideoKeys = new Set();
 
+    // 处理图片（含 Live Photo）
     imageObjects.forEach(imgObj => {
         const imgKey = imgObj.Key;
         const baseName = path.basename(imgKey, path.extname(imgKey));
@@ -151,7 +152,7 @@ objects.forEach(obj => {
             console.warn(`⚠️ 无法从文件名 "${fileName}" 解析日期，回退到 LastModified`);
         }
 
-        // ===== 新增：检查是否存在同名封面 =====
+        // ===== 检查是否存在同名封面图 =====
         const posterKey = vKey.replace(/\.(mp4|mov|m4v)$/, '-cover.jpg');
         const hasPoster = objects.some(obj => obj.Key === posterKey);
 
@@ -169,6 +170,7 @@ objects.forEach(obj => {
         imageList.push(item);
     });
 
+    // 排序
     if (SORT_ORDER.toLowerCase() === 'desc') {
         imageList.sort((a, b) => b.timestamp - a.timestamp);
         console.log('⏱️ 排序方向：最新在前 (desc)');

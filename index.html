@@ -137,6 +137,41 @@
             color: var(--text-muted);
         }
 
+        /* ===== BGM 提示条 ===== */
+        .bgm-hint {
+            position: fixed;
+            top: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10050;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: #fff;
+            padding: 0.4rem 1.2rem;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            letter-spacing: 0.3px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            font-weight: 400;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            white-space: nowrap;
+        }
+
+        .bgm-hint.show {
+            opacity: 1;
+        }
+
+        @media (max-width: 640px) {
+            .bgm-hint {
+                top: 1rem;
+                font-size: 0.7rem;
+                padding: 0.3rem 1rem;
+            }
+        }
+
         /* ===== 背景音乐图标 ===== */
         .bgm-toggle {
             position: fixed;
@@ -529,10 +564,11 @@
             pointer-events: none;
         }
 
+        /* ===== 关闭按钮 — 移至左上角 ===== */
         .close-btn {
             position: fixed;
             top: 1.8rem;
-            right: 2rem;
+            left: 2rem;
             z-index: 10002;
             background: rgba(0, 0, 0, 0.35);
             backdrop-filter: blur(6px);
@@ -904,9 +940,10 @@
                 right: 0.6rem;
             }
 
+            /* 移动端关闭按钮同步左上角 */
             .close-btn {
                 top: 1rem;
-                right: 1rem;
+                left: 1rem;
                 width: 44px;
                 height: 44px;
                 font-size: 1.5rem;
@@ -951,6 +988,9 @@
 </head>
 
 <body>
+
+    <!-- ===== BGM 提示条 ===== -->
+    <div class="bgm-hint" id="bgmHint">🎵 BGM可点击暂停</div>
 
     <!-- ===== 背景音乐图标 ===== -->
     <button class="bgm-toggle" id="bgmToggle" aria-label="背景音乐" title="背景音乐">
@@ -1203,6 +1243,7 @@
             const bgmToggle = document.getElementById('bgmToggle');
             const bgmIcon = document.getElementById('bgmIcon');
             const bgmAudio = document.getElementById('bgmAudio');
+            const bgmHint = document.getElementById('bgmHint');
 
             let bgmPlaying = false;
             let bgmUserClosed = localStorage.getItem('userCloseBgm') === '1';
@@ -1328,7 +1369,6 @@
             const fansFormType = document.getElementById('fansFormType');
             const fansFormSrc = document.getElementById('fansFormSrc');
             const fansFormVideo = document.getElementById('fansFormVideo');
-            // 新增 poster 元素
             const fansFormPoster = document.getElementById('fansFormPoster');
             const fansFormCreator = document.getElementById('fansFormCreator');
             const fansFormMessage = document.getElementById('fansFormMessage');
@@ -1698,7 +1738,7 @@
             }
 
             // ============================================================
-            // 5. 卡片与灯箱（包含精选标签 + poster 支持）
+            // 5. 卡片与灯箱（包含精选标签 + poster 支持 + 封面恢复）
             // ============================================================
             function createCard(item) {
                 const div = document.createElement('div');
@@ -1744,6 +1784,8 @@
                     div.addEventListener('mouseleave', () => {
                         video.pause();
                         video.currentTime = 0;
+                        // ===== 关键：重新加载元数据，恢复 poster 封面 =====
+                        video.load();
                     });
 
                     // 移动端长按
@@ -1757,11 +1799,13 @@
                         clearTimeout(touchTimer);
                         video.pause();
                         video.currentTime = 0;
+                        video.load();
                     }, { passive: true });
                     div.addEventListener('touchcancel', () => {
                         clearTimeout(touchTimer);
                         video.pause();
                         video.currentTime = 0;
+                        video.load();
                     }, { passive: true });
                 } else {
                     const img = document.createElement('img');
@@ -1794,6 +1838,7 @@
                             video.classList.remove('active');
                             video.pause();
                             video.currentTime = 0;
+                            // Live Photo 不调用 load，保留图片展示
                         });
 
                         let touchTimer = null;
@@ -1920,7 +1965,7 @@
                     if (item.video) {
                         const video = document.createElement('video');
                         video.src = item.video;
-                        video.poster = item.poster || item.src; // 优先使用 poster
+                        video.poster = item.poster || item.src;
                         video.controls = true;
                         video.muted = true;
                         video.playsInline = true;
@@ -2008,6 +2053,11 @@
                                         video.play().catch(() => { });
                                     } else {
                                         video.pause();
+                                        video.currentTime = 0;
+                                        // ===== 恢复封面 =====
+                                        if (video.poster) {
+                                            video.load();
+                                        }
                                     }
                                 }
                             });
@@ -2044,7 +2094,11 @@
                 lightbox.classList.remove('active');
                 document.body.style.overflow = '';
                 if (swiperInstance) {
-                    document.querySelectorAll('.swiper-slide video').forEach(v => v.pause());
+                    document.querySelectorAll('.swiper-slide video').forEach(v => {
+                        v.pause();
+                        v.currentTime = 0;
+                        if (v.poster) v.load();
+                    });
                     swiperInstance.destroy(true, true);
                     swiperInstance = null;
                 }
@@ -2119,6 +2173,10 @@
                                         video.play().catch(() => { });
                                     } else {
                                         video.pause();
+                                        video.currentTime = 0;
+                                        if (video.poster) {
+                                            video.load();
+                                        }
                                     }
                                 }
                             });
@@ -2678,7 +2736,7 @@
                     fansFormType.value = item.type || 'photo';
                     fansFormSrc.value = item.src || '';
                     fansFormVideo.value = item.video || '';
-                    fansFormPoster.value = item.poster || '';  // 填充 poster
+                    fansFormPoster.value = item.poster || '';
                     fansFormCreator.value = item.creatorId || '';
                     fansFormMessage.value = item.message || '';
                     fansFormCategory.value = item.category || '手绘插画';
@@ -2712,7 +2770,7 @@
                     type: fansFormType.value,
                     src: fansFormSrc.value.trim(),
                     video: fansFormVideo.value.trim(),
-                    poster: fansFormPoster.value.trim(), // 新增
+                    poster: fansFormPoster.value.trim(),
                     creatorId: fansFormCreator.value.trim(),
                     message: fansFormMessage.value.trim(),
                     category: fansFormCategory.value,
@@ -2780,8 +2838,19 @@
             // ============================================================
             // 10. 启动
             // ============================================================
+            // 1. 加载数据
             loadImages();
             updateVisitCount();
+
+            // 2. 尝试自动播放背景音乐
+            setTimeout(() => {
+                tryPlayBgm();
+                // 3. 显示 BGM 提示（2秒后淡出，4秒后隐藏）
+                bgmHint.classList.add('show');
+                setTimeout(() => {
+                    bgmHint.classList.remove('show');
+                }, 4000);
+            }, 500);
         })();
     </script>
 

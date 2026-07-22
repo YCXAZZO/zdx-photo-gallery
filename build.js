@@ -88,17 +88,24 @@ async function main() {
     const imageObjects = [];
     const videoObjects = [];
 
-    objects.forEach(obj => {
-        if (excludedPrefixes.some(prefix => obj.Key.startsWith(prefix))) {
-            return;
-        }
-        const ext = path.extname(obj.Key).toLowerCase();
-        if (imageExtensions.includes(ext)) {
-            imageObjects.push(obj);
-        } else if (videoExtensions.includes(ext)) {
-            videoObjects.push(obj);
-        }
-    });
+objects.forEach(obj => {
+    // ===== 先执行所有排除 =====
+    if (excludedPrefixes.some(prefix => obj.Key.startsWith(prefix))) {
+        return;
+    }
+    // 排除封面图（-cover.jpg）
+    if (obj.Key.includes('-cover.jpg')) {
+        return;
+    }
+
+    // ===== 再分类 =====
+    const ext = path.extname(obj.Key).toLowerCase();
+    if (imageExtensions.includes(ext)) {
+        imageObjects.push(obj);
+    } else if (videoExtensions.includes(ext)) {
+        videoObjects.push(obj);
+    }
+});
 
     console.log(`📸 找到图片 ${imageObjects.length} 个，视频 ${videoObjects.length} 个`);
 

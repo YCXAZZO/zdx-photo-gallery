@@ -77,6 +77,7 @@
             font-style: normal;
             font-display: swap;
         }
+
         /* ===== 全局重置 ===== */
         * {
             margin: 0;
@@ -114,11 +115,11 @@
             font-size: 4rem;
             font-weight: 400;
             color: var(--text-primary);
-        /* 其他样式保持不变 */
+            /* 其他样式保持不变 */
         }
 
         .gallery-header .subtitle {
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             color: var(--text-secondary);
             margin-top: 0.3rem;
         }
@@ -154,13 +155,13 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 10050;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(255, 255, 255, 0.6);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
-            color: #fff;
+            color: #0d0000;
             padding: 0.4rem 1.2rem;
             border-radius: 30px;
-            font-size: 0.8rem;
+            font-size: 2rem;
             letter-spacing: 0.3px;
             opacity: 0;
             transition: opacity 0.5s ease;
@@ -902,7 +903,7 @@
             }
 
             .gallery-header h1 {
-                font-size: 3.2rem;
+                font-size: 1.9rem;
             }
 
             .sort-controls {
@@ -1000,7 +1001,7 @@
 <body>
 
     <!-- ===== BGM 提示条 ===== -->
-    <div class="bgm-hint" id="bgmHint">🎵 BGM可点击暂停</div>
+    <b><div class="bgm-hint" id="bgmHint">🎵 BGM可点击暂停</b></div>
 
     <!-- ===== 背景音乐图标 ===== -->
     <button class="bgm-toggle" id="bgmToggle" aria-label="背景音乐" title="背景音乐">
@@ -1214,7 +1215,8 @@
                     </div>
                     <!-- ===== 新增：封面图 URL（可选） ===== -->
                     <div>
-                        <label style="font-weight:500; font-size:0.9rem; color:var(--text-secondary);">封面图 URL（选填，仅视频生效）</label>
+                        <label style="font-weight:500; font-size:0.9rem; color:var(--text-secondary);">封面图
+                            URL（选填，仅视频生效）</label>
                         <input type="text" id="fansFormPoster" placeholder="https://img.ycxazzo.top/fans/xxx-cover.jpg"
                             style="width:100%; padding:0.6rem; border-radius:30px; border:1px solid var(--border-divider); background:var(--bg-card); color:var(--text-primary); font-family:inherit;" />
                     </div>
